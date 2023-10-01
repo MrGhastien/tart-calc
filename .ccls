@@ -1,0 +1,7 @@
+gcc
+-Wall
+-Wextra
+-I./include
+-g
+-fsanitize=address
+-Werror=return-type
