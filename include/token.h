@@ -44,3 +44,7 @@ bool isGeneric(Identifier identifier);
 Token *getOperator(enum OperatorType type);
 Token *operatorFromSymbol(const char *str);
 void initOperators();
+
+void shutTokens();
+
+void initTokens();

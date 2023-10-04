@@ -3,7 +3,7 @@
 #include <stdlib.h>
 
 struct StringBuilder_T {
-    char* array;
+    darray* array;
 };
 
 StringBuilder* createBuilder() {
@@ -11,8 +11,7 @@ StringBuilder* createBuilder() {
     if(builder == null)
         return null;
     builder->array = darrayCreate(4, sizeof(char));
-    char terminator = '\0';
-    darrayAdd(builder->array, &terminator);
+    darrayAdd(builder->array, '\0');
     return builder;
 }
 
@@ -22,7 +21,7 @@ void destroyBuilder(StringBuilder *builder) {
 }
 
 void builderAppendc(StringBuilder *builder, char c) {
-    darrayInsert(builder->array, &c, darrayLength(builder->array) - 1);
+    darrayInsert(builder->array, c, darrayLength(builder->array) - 1);
 }
 
 void builderAppends(StringBuilder *builder, char* str) {
@@ -43,7 +42,7 @@ static void appendNum(StringBuilder *builder, u64 num, u64 *firstDigitIndex) {
     *firstDigitIndex = darrayLength(builder->array) - 2;
     while (num) {
         digit = num % 10 + '0';
-        darrayInsert(builder->array, &digit, *firstDigitIndex);
+        darrayInsert(builder->array, digit, *firstDigitIndex);
         num /= 10;
     }
 }
@@ -58,7 +57,7 @@ void builderAppendi(StringBuilder *builder, i64 num) {
     appendNum(builder, (u64)(num < 0 ? -num : num), &i);
     if(num < 0) {
         char c = '-';
-        darrayInsert(builder->array, &c, i);
+        darrayInsert(builder->array, c, i);
     }
 }
 
@@ -74,12 +73,11 @@ u64 builderLength(StringBuilder *builder) {
 
 void builderReset(StringBuilder *builder) {
     darrayClear(builder->array);
-    char terminator = '\0';
-    darrayAdd(builder->array, &terminator);
+    darrayAdd(builder->array, '\0');
 }
 
 const char *builderStringRef(StringBuilder *builder) {
-    return builder->array;
+    return (char*)builder->array->a;
 }
 
 char *builderCreateString(StringBuilder *builder) {
@@ -88,7 +86,7 @@ char *builderCreateString(StringBuilder *builder) {
     if(str == null)
         return null;
     for (u64 i = 0; i < len; i++) {
-        str[i] = builder->array[i];
+        darrayGet(builder->array, i, str + i);
     }
     str[len] = '\0';
     return str;

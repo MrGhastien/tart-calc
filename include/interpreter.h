@@ -1,7 +1,9 @@
 #pragma once
-#include "token.h"
 #include "eval-tree.h"
+#include "token.h"
 
-Token** tokenize(const char *str);
+darray *tokenize(const char *str);
 
-EvalNode *parse(Token **tokens);
+EvalNode *parse(darray *tokens);
+
+double evaluate(const char *expression);

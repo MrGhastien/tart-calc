@@ -1,56 +1,72 @@
 #include "token.h"
+#include "darray.h"
 #include "util.h"
 
 #include <stdlib.h>
 
-//Can't put this inside 'function.c', because it would not be a compile-time constant anymore.
+// for use inside 'initTokens'.
+#define DEF_TOKEN(id, _symbol, _value, _function)                                                                      \
+    t.identifier = id;                                                                                                 \
+    t.symbol = _symbol;                                                                                                \
+    t.value._value;                                                                                                  \
+    t.function = _function;                                                                                            \
+    _darrayAdd(&prebuilt, &t)
+
+// Can't put this inside 'function.c', because it would not be a compile-time constant anymore.
 const Function NONE = {null, 0};
 
-static Token * createNumber(const char *symbol);
+static Token *createNumber(const char *symbol);
 static const factory factories[] = {operatorFromSymbol, createNumber};
-static Token prebuilt[] = {
-    {LPAREN, "(", {0}, NONE},
-    {RPAREN, ")", {0}, NONE},
-    {SEMI, ";", {0}, NONE},
-};
+
+static darray prebuilt;
 
 const char *getSymbol(Identifier identifier) {
-    if(identifier < LPAREN || identifier == _IDENTIFIER_SIZE)
+    if (identifier < LPAREN || identifier == _IDENTIFIER_SIZE)
         return null;
 
-    return prebuilt[identifier - LPAREN].symbol;
+    Token t;
+    darrayGet(&prebuilt, identifier - LPAREN, &t);
+    return t.symbol;
 }
 
 Identifier getIdentifier(const char *symbol) {
     for (u64 i = 0; i < _IDENTIFIER_SIZE - LPAREN; i++) {
-        const char* s = prebuilt[i].symbol;
-        const char* t = symbol;
-        if(streq(s, t)) 
-            return prebuilt[i].identifier;
+        Token token;
+        darrayGet(&prebuilt, i, &token);
+        const char *s = token.symbol;
+        const char *t = symbol;
+        if (streq(s, t))
+            return token.identifier;
     }
     return _IDENTIFIER_SIZE;
 }
 
-Token* createToken(Identifier identifier, const char* symbol) {
+Token *createToken(Identifier identifier, const char *symbol) {
     if (identifier < LPAREN) {
         return factories[identifier](symbol);
     } else if (identifier < _IDENTIFIER_SIZE) {
-        return prebuilt + identifier - LPAREN;
+        return ((Token *)prebuilt.a) + identifier - LPAREN;
     } else {
         return null;
     }
 }
 
-bool isGeneric(Identifier identifier) {
-    return identifier >= LPAREN && identifier < _IDENTIFIER_SIZE;
+bool isGeneric(Identifier identifier) { return identifier >= LPAREN && identifier < _IDENTIFIER_SIZE; }
+
+void initTokens() {
+    darrayInit(&prebuilt, 4, sizeof(Token));
+    Token t;
+    DEF_TOKEN(LPAREN, "(", number = 0, NONE);
+    DEF_TOKEN(RPAREN, ")", number = 0, NONE);
+    DEF_TOKEN(SEMI, ";", number = 0, NONE);
 }
 
-
+void shutTokens() { free(prebuilt.a); }
 
 // === Factories ===
-static Token * createNumber(const char *symbol) {
+static Token *createNumber(const char *symbol) {
     double n = strtod(symbol, null);
-    Token* t = malloc(sizeof *t);
+    Token *t = malloc(sizeof *t);
     t->function = NONE;
     t->identifier = NUMBER;
     t->symbol = symbol;

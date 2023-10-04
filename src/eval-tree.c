@@ -8,7 +8,7 @@ EvalNode *treeCreate(Token *token) {
     if(node == null)
         return null;
 
-    node->children = darrayCreate(2, sizeof *node->children);
+    node->children = darrayCreate(2, sizeof(EvalNode*));
     node->parent = null;
     node->token = token;
     node->function = token->function.ptr; //TODO
@@ -17,7 +17,7 @@ EvalNode *treeCreate(Token *token) {
 }
 
 void treeAddChild(EvalNode *parent, EvalNode *child) {
-    darrayAdd(parent->children, &child);
+    darrayAdd(parent->children, child);
     child->parent = parent;
 }
 
@@ -27,7 +27,9 @@ static void printTreeRec(EvalNode *tree, u64 level) {
     }
     printf("%s\n", tree->token->symbol);
     for (u64 i = 0; i < tree->arity; i++) {
-        printTreeRec(tree->children[i], level + 1);
+        EvalNode* node;
+        darrayGet(tree->children, i, &node);
+        printTreeRec(node, level + 1);
     }
 }
 
@@ -40,7 +42,9 @@ double treeEval(EvalNode *tree) {
         return tree->token->value.number;
     double args[tree->arity];
     for (u64 i = 0; i < tree->arity; i++) {
-        args[i] = treeEval(tree->children[i]);
+        EvalNode* node;
+        darrayGet(tree->children, i, &node);
+        args[i] = treeEval(node);
     }
     return tree->function(args);
 }
