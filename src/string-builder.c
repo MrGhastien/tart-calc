@@ -2,26 +2,22 @@
 
 #include <stdlib.h>
 
-struct StringBuilder_T {
-    darray* array;
-};
-
 StringBuilder* createBuilder() {
-    StringBuilder* builder = malloc(sizeof *builder);
-    if(builder == null)
-        return null;
-    builder->array = darrayCreate(4, sizeof(char));
-    darrayAdd(builder->array, '\0');
-    return builder;
+    return darrayCreate(4, sizeof(char));
+}
+
+void initBuilder(StringBuilder *builder) {
+    darrayInit(builder, 4, sizeof(char));
+    darrayAdd(builder, '\0');
 }
 
 void destroyBuilder(StringBuilder *builder) {
-    darrayDestroy(builder->array);
+    darrayDestroy(builder);
     free(builder);
 }
 
 void builderAppendc(StringBuilder *builder, char c) {
-    darrayInsert(builder->array, c, darrayLength(builder->array) - 1);
+    darrayInsert(builder, c, darrayLength(builder) - 1)
 }
 
 void builderAppends(StringBuilder *builder, char* str) {
@@ -39,10 +35,10 @@ static void appendNum(StringBuilder *builder, u64 num, u64 *firstDigitIndex) {
     char digit = num % 10 + '0';
     builderAppendc(builder, digit);
     num /= 10;
-    *firstDigitIndex = darrayLength(builder->array) - 2;
+    *firstDigitIndex = darrayLength(builder) - 2;
     while (num) {
         digit = num % 10 + '0';
-        darrayInsert(builder->array, digit, *firstDigitIndex);
+        darrayInsert(builder, digit, *firstDigitIndex);
         num /= 10;
     }
 }
@@ -57,27 +53,27 @@ void builderAppendi(StringBuilder *builder, i64 num) {
     appendNum(builder, (u64)(num < 0 ? -num : num), &i);
     if(num < 0) {
         char c = '-';
-        darrayInsert(builder->array, c, i);
+        darrayInsert(builder, c, i);
     }
 }
 
 void builderDeleteAt(StringBuilder *builder, u64 index) {
     if(index == builderLength(builder))
         return;
-    darrayRemove(builder->array, index, null);
+    darrayRemove(builder, index, null);
 }
 
 u64 builderLength(StringBuilder *builder) {
-    return darrayLength(builder->array) - 1;
+    return darrayLength(builder) - 1;
 }
 
 void builderReset(StringBuilder *builder) {
-    darrayClear(builder->array);
-    darrayAdd(builder->array, '\0');
+    darrayClear(builder);
+    darrayAdd(builder, '\0');
 }
 
 const char *builderStringRef(StringBuilder *builder) {
-    return (char*)builder->array->a;
+    return (char*)builder->a;
 }
 
 char *builderCreateString(StringBuilder *builder) {
@@ -86,10 +82,10 @@ char *builderCreateString(StringBuilder *builder) {
     if(str == null)
         return null;
     for (u64 i = 0; i < len; i++) {
-        darrayGet(builder->array, i, str + i);
+        darrayGet(builder, i, str + i);
     }
     str[len] = '\0';
     return str;
 }
 
-void builderDestroy(StringBuilder *builder) { darrayDestroy(builder->array); }
+void builderDestroy(StringBuilder *builder) { darrayDestroy(builder); }

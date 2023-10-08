@@ -24,6 +24,9 @@ typedef struct {
         Operator operator;
     } value;
     Function function;
+
+    //Metadata for error reporting
+    u64 position;
 } Token;
 
 enum OperatorType {
@@ -34,15 +37,14 @@ enum OperatorType {
     _OPERATOR_SIZE
 };
 
-typedef Token *(*factory)(const char *symbol);
+typedef Token *(*factory)(const char *symbol, u64 position);
 
 const char* getSymbol(Identifier identifier);
 Identifier getIdentifier(const char* symbol);
-Token* createToken(Identifier identifier, const char* symbol);
+Token* createToken(Identifier identifier, const char* symbol, u64 position);
 bool isGeneric(Identifier identifier);
 
-Token *getOperator(enum OperatorType type);
-Token *operatorFromSymbol(const char *str);
+void operatorFromSymbol(const char *str, Token* newToken);
 void initOperators();
 
 void shutTokens();

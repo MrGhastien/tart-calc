@@ -1,9 +1,10 @@
 #pragma once
 #include "darray.h"
 
-typedef struct StringBuilder_T StringBuilder;
+typedef darray StringBuilder;
 
 StringBuilder* createBuilder();
+void initBuilder(StringBuilder* builder);
 void destroyBuilder(StringBuilder* builder);
 
 void builderAppendc(StringBuilder* builder, char c);

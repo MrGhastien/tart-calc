@@ -2,9 +2,11 @@
 #include "darray.h"
 #include "string-builder.h"
 #include "util.h"
+#include "error.h"
 
 #include "./pinterpreter.h"
 #include <err.h>
+#include <stdio.h>
 #include <stdlib.h>
 
 static bool isWhitespace(char c) { return c == ' '; }
@@ -12,96 +14,108 @@ static bool isWhitespace(char c) { return c == ' '; }
 static bool isDigit(char c) { return c >= '0' && c <= '9'; }
 
 darray *tokenize(const char *str) {
-    StringBuilder *tokenBuilder = createBuilder();
-    darray *tokens = darrayCreate(4, sizeof(Token *));
+    LexerCtx ctx;
+    ctx.position = 0;
+    ctx.tokenPos = 0;
+    initBuilder(&ctx.tokenBuilder);
+    ctx.tokens = darrayCreate(4, sizeof(Token*));
 
     char c;
     u64 len = strlen(str);
-    Identifier currentId = _IDENTIFIER_SIZE; // Current token type / identifier.
-    for (u64 i = 0; i < len; i++) {
-        c = str[i];
+    //The currentId keeps track of the type of the current token we are building
+    //We build a token by adding its characters, and then creating the token
+    //when we change token types
+    Identifier currentId = _IDENTIFIER_SIZE;
+    for (ctx.position = 0; ctx.position < len; ctx.position++) {
+        c = str[ctx.position];
         if (c == '\n')
             break;
 
         if (isWhitespace(c)) {
-            setCurrentId(_IDENTIFIER_SIZE, &currentId, tokenBuilder, tokens);
+            setCurrentId(_IDENTIFIER_SIZE, &currentId, &ctx);
             continue;
         }
 
         if (c == '(') {
-            if (currentId != LPAREN)
-                setCurrentId(LPAREN, &currentId, tokenBuilder, tokens);
-            builderAppendc(tokenBuilder, c);
+            setCurrentId(LPAREN, &currentId, &ctx);
+            builderAppendc(&ctx.tokenBuilder, c);
             continue;
         }
 
         if (c == ')') {
-            if (currentId != RPAREN)
-                setCurrentId(RPAREN, &currentId, tokenBuilder, tokens);
-            builderAppendc(tokenBuilder, c);
+                setCurrentId(RPAREN, &currentId, &ctx);
+            builderAppendc(&ctx.tokenBuilder, c);
             continue;
         }
 
         if (isDigit(c) || c == '.') {
-            if (currentId != NUMBER)
-                setCurrentId(NUMBER, &currentId, tokenBuilder, tokens);
-            builderAppendc(tokenBuilder, c);
+                setCurrentId(NUMBER, &currentId, &ctx);
+            builderAppendc(&ctx.tokenBuilder, c);
             continue;
         }
 
-        if (isGeneric(getIdentifier(builderStringRef(tokenBuilder)))) {
+        if (isGeneric(getIdentifier(builderStringRef(&ctx.tokenBuilder)))) {
             // builderDeleteAt(tokenBuilder, builderLength(tokenBuilder) - 1);
-            if (currentId != _IDENTIFIER_SIZE)
-                setCurrentId(_IDENTIFIER_SIZE, &currentId, tokenBuilder, tokens);
+                setCurrentId(_IDENTIFIER_SIZE, &currentId, &ctx);
             continue;
         }
 
-        if (currentId != OPERATOR)
-            setCurrentId(OPERATOR, &currentId, tokenBuilder, tokens);
-        builderAppendc(tokenBuilder, c);
+        setCurrentId(OPERATOR, &currentId, &ctx);
+        builderAppendc(&ctx.tokenBuilder, c);
     }
-    setCurrentId(_IDENTIFIER_SIZE, &currentId, tokenBuilder, tokens);
-    return tokens;
+    setCurrentId(_IDENTIFIER_SIZE, &currentId, &ctx);
+    return ctx.tokens;
 }
 
-static void popOperator(darray *operatorStack, darray *outputQueue) {
+static bool popOperator(ParsingCtx* ctx) {
     Token *t;
-    darrayPop(operatorStack, &t);
+    darrayPop(ctx->operatorStack, &t);
     EvalNode *node = treeCreate(t);
     for (u64 i = node->arity; i > 0; i--) {
         EvalNode *n;
-        darrayRemove(outputQueue, darrayLength(outputQueue) - i, &n);
+        if (!darrayRemove(ctx->outputQueue, darrayLength(ctx->outputQueue) - i, &n)) {
+            //Operator is missing an operand !
+            signalError(ERR_OP_MISSING_OPERAND, t);
+            return false;
+        }
         treeAddChild(node, n);
     }
-    darrayAdd(outputQueue, node);
+    darrayAdd(ctx->outputQueue, node);
+    return true;
 }
 
-static void handleOperator(Token *token, darray *operatorStack, darray *outputQueue) {
+static bool handleOperator(Token *token, ParsingCtx* ctx) {
     Operator *op = &token->value.operator;
     Token *t2;
-    while (darrayPeek(operatorStack, &t2) && t2->identifier == OPERATOR) {
+    while (darrayPeek(ctx->operatorStack, &t2) && t2->identifier == OPERATOR) {
         Operator *o2 = &t2->value.operator;
         if (o2->priority < op->priority || (o2->priority == op->priority && !op->rightAssociative))
             break;
-        popOperator(operatorStack, outputQueue);
+        if(!popOperator(ctx))
+            return false;
     }
-    darrayAdd(operatorStack, token);
+    darrayAdd(ctx->operatorStack, token);
+    return true;
 }
 
-static bool handleParen(darray *operatorStack, darray *outputQueue) {
+static bool handleParen(ParsingCtx* ctx) {
     Token *t;
-    while (darrayPeek(operatorStack, &t) && t->identifier != LPAREN) {
-        popOperator(operatorStack, outputQueue);
+    while (darrayPeek(ctx->operatorStack, &t) && t->identifier != LPAREN) {
+        if (!popOperator(ctx)) {
+            signalError(ERR_MISMATCH_PAREN, t);
+            return false;
+        }
     }
-    if (darrayLength(operatorStack) == 0)
+    if (darrayLength(ctx->operatorStack) == 0)
         return false;
-    darrayPop(operatorStack, null);
+    darrayPop(ctx->operatorStack, null);
     return true;
 }
 
 EvalNode *parse(darray *tokens) {
-    darray *operatorStack = darrayCreate(4, sizeof(Token *));
-    darray *outputQueue = darrayCreate(4, sizeof(EvalNode *));
+    ParsingCtx ctx;
+    ctx.operatorStack = darrayCreate(4, sizeof(Token *));
+    ctx.outputQueue = darrayCreate(4, sizeof(EvalNode *));
 
     Token *t = null;
     for (u64 i = 0; i < darrayLength(tokens); i++) {
@@ -111,16 +125,16 @@ EvalNode *parse(darray *tokens) {
         switch (id) {
         case NUMBER:
             node = treeCreate(t);
-            darrayAdd(outputQueue, node);
+            darrayAdd(ctx.outputQueue, node);
             break;
         case OPERATOR:
-            handleOperator(t, operatorStack, outputQueue);
+            handleOperator(t, &ctx);
             break;
         case LPAREN:
-            darrayInsert(operatorStack, t, 0);
+            darrayInsert(ctx.operatorStack, t, 0);
             break;
         case RPAREN:
-            if(!handleParen(operatorStack, outputQueue))
+            if(!handleParen(&ctx))
                 return NULL;
             break;
         default:
@@ -129,38 +143,49 @@ EvalNode *parse(darray *tokens) {
         }
     }
     Token *op;
-    while (darrayPeek(operatorStack, &op)) {
+    while (darrayPeek(ctx.operatorStack, &op)) {
         if (op->identifier == LPAREN) {
-            err(2, "Mismatched parentheses\n");
+            signalError(ERR_MISMATCH_PAREN, op);
             return NULL;
         }
-        popOperator(operatorStack, outputQueue);
+        popOperator(&ctx);
     }
     EvalNode *node;
-    darrayGet(outputQueue, 0, &node);
+    darrayGet(ctx.outputQueue, 0, &node);
     return node;
 }
 
-void setCurrentId(Identifier newID, Identifier *id, StringBuilder *tokenBuilder, darray *tokens) {
-    if (builderLength(tokenBuilder) > 0) {
-        const char *str = builderCreateString(tokenBuilder);
+void setCurrentId(Identifier newID, Identifier *id, LexerCtx* ctx) {
+    if(newID == *id)
+        return;
+    StringBuilder* builder = &ctx->tokenBuilder;
+    if (builderLength(builder) > 0) {
+        const char *str = builderCreateString(builder);
         Token *t;
         if (*id == _IDENTIFIER_SIZE) {
-            t = createToken(getIdentifier(str), str);
+            t = createToken(getIdentifier(str), str, ctx->tokenPos);
         } else {
-            t = createToken(*id, str);
+            t = createToken(*id, str, ctx->tokenPos);
         }
         if (t == null)
             err(1, "Unknown token '%s'. Current identifier is : '%u'", str, *id);
-        darrayAdd(tokens, t);
-        builderReset(tokenBuilder);
+        darrayAdd(ctx->tokens, t);
+        builderReset(builder);
     }
+    ctx->tokenPos = ctx->position;
     *id = newID;
 }
 
 double evaluate(const char *expression) {
     darray* tokens = tokenize(expression);
+    if (getErrorCount()) {
+        return 0;
+    }
     EvalNode* tree = parse(tokens);
+    if (getErrorCount()) {
+        return 0;
+    }
     double result = treeEval(tree);
+
     return result;
 }

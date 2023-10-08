@@ -1,4 +1,4 @@
-CFLAGS = -Wall -Wextra -I./include -g -Werror=return-type #-fsanitize=address
+CFLAGS = -Wall -Wextra -I./include -g -Werror=return-type -fsanitize=address
 SRC = ./src
 HDR = ./include
 OBJ = ./obj

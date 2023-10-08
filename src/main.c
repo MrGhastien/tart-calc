@@ -3,6 +3,7 @@
 #include "interpreter.h"
 #include "string-builder.h"
 #include "token.h"
+#include "error.h"
 
 #include <err.h>
 #include <stdio.h>
@@ -27,6 +28,8 @@ void handleOptions(int argc, char **argv) {
 }
 
 int main(int argc, char **argv) {
+
+    initErrorSystem();
 
     handleOptions(argc, argv);
 
@@ -55,11 +58,18 @@ int main(int argc, char **argv) {
             double n = treeEval(node);
             printf("Reuslt : %g\n", n);
         } else {
-            printf("\e[32m=> %g\e[0m\n\n", evaluate(line));
+            double result = evaluate(line);
+            if (getErrorCount()) {
+                printErrors(line);
+                puts("\e[31mFailed to compute result.\e[0m");
+            } else {
+                printf("\e[32m=> %g\e[0m\n\n", result);
+            }
         }
     }
     free(line);
     shutTokens();
+    shutErrorSystem();
     return 0;
 }
 

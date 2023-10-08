@@ -7,7 +7,7 @@
     op##name->value.operator.priority = _priority;\
     op##name->value.operator.rightAssociative = _rightAssociative;\
     op##name->function = name
-    
+
 
 static Token operators[_OPERATOR_SIZE];
 
@@ -18,16 +18,12 @@ void initOperators() {
     DEF_OP(DIVIDE, "/", 3, false);
 }
 
-Token *getOperator(enum OperatorType type) {
-    if (type == _OPERATOR_SIZE)
-        return null;
-    return operators + type;
-}
-
-Token *operatorFromSymbol(const char *str) {
+void operatorFromSymbol(const char *str, Token* newToken) {
     for (u64 i = 0; i < _OPERATOR_SIZE; i++) {
-        if(streq(operators[i].symbol, str))
-            return operators + i;
+        if (streq(operators[i].symbol, str)) {
+            Token* op = operators + i;
+            newToken->function = op->function;
+            newToken->value.operator = op->value.operator;
+        }
     }
-    return null;
 }

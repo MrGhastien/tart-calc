@@ -2,6 +2,8 @@
 #include "darray.h"
 #include "util.h"
 
+#include "error.h"
+
 #include <stdlib.h>
 
 // for use inside 'initTokens'.
@@ -14,9 +16,6 @@
 
 // Can't put this inside 'function.c', because it would not be a compile-time constant anymore.
 const Function NONE = {null, 0};
-
-static Token *createNumber(const char *symbol);
-static const factory factories[] = {operatorFromSymbol, createNumber};
 
 static darray prebuilt;
 
@@ -41,14 +40,30 @@ Identifier getIdentifier(const char *symbol) {
     return _IDENTIFIER_SIZE;
 }
 
-Token *createToken(Identifier identifier, const char *symbol) {
-    if (identifier < LPAREN) {
-        return factories[identifier](symbol);
-    } else if (identifier < _IDENTIFIER_SIZE) {
-        return ((Token *)prebuilt.a) + identifier - LPAREN;
-    } else {
+Token *createToken(Identifier identifier, const char *symbol, u64 position) {
+    Token *t = malloc(sizeof *t);
+    if (!t) {
+        signalError(ERR_ALLOC_FAIL, null);
         return null;
     }
+    t->identifier = identifier;
+    t->symbol = symbol;
+    t->position = position;
+    switch (identifier) {
+    case _IDENTIFIER_SIZE:
+        return null;
+    case OPERATOR:
+        operatorFromSymbol(symbol, t);
+        break;
+    case NUMBER:
+        t->value.number = strtod(symbol, null);
+        break;
+    default:
+        t->function = NONE;
+        t->value.number = 0;
+        break;
+    }
+    return t;
 }
 
 bool isGeneric(Identifier identifier) { return identifier >= LPAREN && identifier < _IDENTIFIER_SIZE; }
@@ -62,14 +77,3 @@ void initTokens() {
 }
 
 void shutTokens() { free(prebuilt.a); }
-
-// === Factories ===
-static Token *createNumber(const char *symbol) {
-    double n = strtod(symbol, null);
-    Token *t = malloc(sizeof *t);
-    t->function = NONE;
-    t->identifier = NUMBER;
-    t->symbol = symbol;
-    t->value.number = n;
-    return t;
-}

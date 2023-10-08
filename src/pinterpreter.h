@@ -1,4 +1,17 @@
 #include "token.h"
 #include "string-builder.h"
 
-void setCurrentId(Identifier newID, Identifier* id, StringBuilder* tokenBuilder, darray * tokens);
+typedef struct LexerCtx {
+    darray* tokens; //Token**
+    u64 position;
+    u64 tokenPos;
+    StringBuilder tokenBuilder;
+} LexerCtx;
+
+typedef struct ParsingCtx {
+    darray* tokens; //Token**
+    darray* operatorStack; //Token**
+    darray* outputQueue; //EvalNode**
+} ParsingCtx;
+
+void setCurrentId(Identifier newID, Identifier* id, LexerCtx* ctx);
