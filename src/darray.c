@@ -138,3 +138,10 @@ bool darrayGet(darray* array, u64 index, void* out) {
 void darrayClear(darray* array) {
     array->length = 0;
 }
+
+void darrayDestroyDeep(darray* array, destructor freeFunc) {
+    for (u64 i = 0; i < array->length; i++) {
+        freeFunc(array->a + i * array->stride);
+    }
+    darrayDestroy(array);
+}

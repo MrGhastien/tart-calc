@@ -3,6 +3,7 @@
 
 #include <err.h>
 #include <stdio.h>
+#include <stdlib.h>
 
 #define MSG(code, msg) messages[code] = msg
 
@@ -23,6 +24,8 @@ void initErrorSystem() {
     MSG(ERR_FUNC_MISSING_OPERAND, "Function is missing one or more operands.");
     MSG(ERR_MISMATCH_PAREN, "Mismatched parentheses.");
     MSG(ERR_ALLOC_FAIL, "Memory allocation failed.");
+    MSG(ERR_UNKNOWN_TOKEN, "Unknown token.");
+    MSG(ERR_DIV_BY_ZERO, "Division by zero.");
 }
 
 void signalError(enum errortype type, Token* token) {
@@ -30,7 +33,16 @@ void signalError(enum errortype type, Token* token) {
         err(ERR_SYSTEM_UNINIT, "Attempt to report error while the system has not been initialized.");
         return;
     }
-    Error error = {type, !token ? 0 : token->position, token};
+    Error error = {type, !token ? 0 : token->position, true, {.token = token}};
+    darrayAdd(errors, error);
+}
+
+void signalErrorNoToken(enum errortype type, const char* symbol, u64 position) {
+    if (!initialized) {
+        err(ERR_SYSTEM_UNINIT, "Attempt to report error while the system has not been initialized.");
+        return;
+    }
+    Error error = {type, position, false, {.symbol = symbol}};
     darrayAdd(errors, error);
 }
 
@@ -52,26 +64,47 @@ Error* getNextError() {
     return ((Error*)errors->a) + errIndex++;
 }
 
+static void previewExprError(const char* expression, const char* symbol, size_t pos) {
+    size_t symbolLen = strlen(symbol);
+    fputs("\x1b[22m", stdout);
+    for (size_t i = 0; expression[i]; i++) {
+        if (i == pos)
+            fputs("\x1b[31;1m", stdout);
+        else if (i == pos + symbolLen)
+            fputs("\x1b[39;22m", stdout);
+        putchar(expression[i]);
+    }
+    size_t j = 0;
+    for (j = 0; j < pos; j++) {
+        putchar(' ');
+    }
+    fputs("\e[31;1m", stdout);
+    putchar('^');
+    for (j = 0; j < symbolLen - 1; j++) {
+        putchar('~');
+    }
+    printf("%s\n", "\e[0m");
+}
+
 void printErrors(const char* expression) {
     u64 errCount = getErrorCount();
     for (u64 i = 0; i < errCount; i++) {
         Error* err = ((Error*)errors->a) + i;
-        if (err->token) {
-            printf("Error at position %zu : %s\n", err->position, messages[err->type]);
-            printf("Problematic token : '%s' [%i]\n", err->token->symbol, err->token->identifier);
-            printf("\e[1m%s", expression);
-            size_t j = 0;
-            for (j = 0; j < err->position; j++) {
-                putchar(' ');
-            }
-            putchar('^');
-            size_t symbolLen = strlen(err->token->symbol);
-            for (j = 0; j < symbolLen - 1; j++) {
-                putchar('~');
-            }
-            printf("%s\n", "\e[0m");
+        if (err->position == (u64)-1) {
+            printf("Error when evaluating : %s\n", messages[err->type]);
+            continue;
+        }
+
+        printf("Error at position %zu : %s\n", err->position, messages[err->type]);
+        if (err->hasToken) {
+            Token* tok = err->value.token;
+            printf("Problematic token : '%s' [%i]\n", tok->symbol, tok->identifier);
+            previewExprError(expression, tok->symbol, err->position);
         } else {
-            printf("Error : %s\n", messages[err->type]);
+            printf("Erroneous symbol : %s\n", err->value.symbol);
+            previewExprError(expression, err->value.symbol, err->position);
+            if (err->value.symbol)
+                free(err->value.symbol);
         }
     }
     darrayClear(errors);

@@ -14,4 +14,4 @@ typedef struct ParsingCtx {
     darray* outputQueue; //EvalNode**
 } ParsingCtx;
 
-void setCurrentId(Identifier newID, Identifier* id, LexerCtx* ctx);
+bool setCurrentId(Identifier newID, Identifier* id, LexerCtx* ctx);

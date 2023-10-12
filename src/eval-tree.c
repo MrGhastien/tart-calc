@@ -1,4 +1,5 @@
 #include "eval-tree.h"
+#include "error.h"
 
 #include <stdlib.h>
 #include <stdio.h>
@@ -38,13 +39,27 @@ void printTree(EvalNode *tree) {
 }
 
 double treeEval(EvalNode *tree) {
+    if(getErrorCount() > 0)
+        return 0;
     if(tree->token->identifier == NUMBER)
         return tree->token->value.number;
     double args[tree->arity];
     for (u64 i = 0; i < tree->arity; i++) {
+        if(getErrorCount() > 0)
+            return 0;
         EvalNode* node;
         darrayGet(tree->children, i, &node);
         args[i] = treeEval(node);
     }
     return tree->function(args);
+}
+
+void treeDestroy(EvalNode* tree) {
+    EvalNode* child;
+    for (u64 i = 0; i < darrayLength(tree->children); i++) {
+        darrayGet(tree->children, i, &child);
+        treeDestroy(child);
+    }
+    darrayDestroy(tree->children);
+    free(tree);
 }

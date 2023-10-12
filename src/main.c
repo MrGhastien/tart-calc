@@ -38,7 +38,7 @@ int main(int argc, char **argv) {
 
     char *line = null;
     u64 size;
-    while (getline(&line, &size, stdin)) {
+    while (getline(&line, &size, stdin) > 0) {
 
         if (context.verbose) {
             darray *tokens = tokenize(line);
@@ -60,7 +60,6 @@ int main(int argc, char **argv) {
         } else {
             double result = evaluate(line);
             if (getErrorCount()) {
-                printErrors(line);
                 puts("\e[31mFailed to compute result.\e[0m");
             } else {
                 printf("\e[32m=> %g\e[0m\n\n", result);

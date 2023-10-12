@@ -18,12 +18,14 @@ void initOperators() {
     DEF_OP(DIVIDE, "/", 3, false);
 }
 
-void operatorFromSymbol(const char *str, Token* newToken) {
+bool operatorFromSymbol(const char *str, Token* newToken) {
     for (u64 i = 0; i < _OPERATOR_SIZE; i++) {
         if (streq(operators[i].symbol, str)) {
             Token* op = operators + i;
             newToken->function = op->function;
             newToken->value.operator = op->value.operator;
+            return true;
         }
     }
+    return false;
 }

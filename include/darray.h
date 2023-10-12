@@ -57,3 +57,9 @@ bool darrayPeek(darray *array, void *out);
 bool darrayGet(darray *array, u64 index, void *out);
 
 void darrayClear(darray *array);
+
+typedef void (*destructor)(void*);
+
+//Free the given array, and apply the given destructor to ensure no memory leaks
+//occur.
+void darrayDestroyDeep(darray* darray, destructor freeFunc);

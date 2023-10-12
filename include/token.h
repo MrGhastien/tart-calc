@@ -18,7 +18,7 @@ typedef struct {
 
 typedef struct {
     Identifier identifier;
-    const char* symbol;
+    char* symbol;
     union data {
         double number;
         Operator operator;
@@ -44,7 +44,7 @@ Identifier getIdentifier(const char* symbol);
 Token* createToken(Identifier identifier, const char* symbol, u64 position);
 bool isGeneric(Identifier identifier);
 
-void operatorFromSymbol(const char *str, Token* newToken);
+bool operatorFromSymbol(const char *str, Token* newToken);
 void initOperators();
 
 void shutTokens();

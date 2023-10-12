@@ -51,9 +51,13 @@ Token *createToken(Identifier identifier, const char *symbol, u64 position) {
     t->position = position;
     switch (identifier) {
     case _IDENTIFIER_SIZE:
+        free(t);
         return null;
     case OPERATOR:
-        operatorFromSymbol(symbol, t);
+        if (!operatorFromSymbol(symbol, t)) {
+            free(t);
+            return NULL;
+        }
         break;
     case NUMBER:
         t->value.number = strtod(symbol, null);
