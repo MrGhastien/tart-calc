@@ -19,7 +19,7 @@ bool setCurrentId(Identifier newID, Identifier* id, LexerCtx* ctx) {
         return true;
     StringBuilder* builder = &ctx->tokenBuilder;
     if (builderLength(builder) > 0) {
-        const char* str = builderCreateString(builder);
+        char* str = builderCreateString(builder);
         Token* t;
         if (*id == _IDENTIFIER_SIZE) {
             t = createToken(getIdentifier(str), str, ctx->tokenPos);

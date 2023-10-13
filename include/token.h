@@ -37,11 +37,9 @@ enum OperatorType {
     _OPERATOR_SIZE
 };
 
-typedef Token *(*factory)(const char *symbol, u64 position);
-
 const char* getSymbol(Identifier identifier);
 Identifier getIdentifier(const char* symbol);
-Token* createToken(Identifier identifier, const char* symbol, u64 position);
+Token* createToken(Identifier identifier, char* symbol, u64 position);
 bool isGeneric(Identifier identifier);
 
 bool operatorFromSymbol(const char *str, Token* newToken);

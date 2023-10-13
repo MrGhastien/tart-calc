@@ -37,7 +37,7 @@ void signalError(enum errortype type, Token* token) {
     darrayAdd(errors, error);
 }
 
-void signalErrorNoToken(enum errortype type, const char* symbol, u64 position) {
+void signalErrorNoToken(enum errortype type, char* symbol, u64 position) {
     if (!initialized) {
         err(ERR_SYSTEM_UNINIT, "Attempt to report error while the system has not been initialized.");
         return;

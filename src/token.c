@@ -40,7 +40,7 @@ Identifier getIdentifier(const char *symbol) {
     return _IDENTIFIER_SIZE;
 }
 
-Token *createToken(Identifier identifier, const char *symbol, u64 position) {
+Token *createToken(Identifier identifier, char *symbol, u64 position) {
     Token *t = malloc(sizeof *t);
     if (!t) {
         signalError(ERR_ALLOC_FAIL, null);

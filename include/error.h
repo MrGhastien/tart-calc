@@ -22,7 +22,7 @@ typedef struct err {
     u64 position;
     bool hasToken;
     union errtoken {
-        const char* symbol;
+        char* symbol;
         Token* token;
     } value;
 } Error;
@@ -32,7 +32,7 @@ void shutErrorSystem();
 
 void signalError(enum errortype type, Token* token);
 
-void signalErrorNoToken(enum errortype type, const char* symbol, u64 position);
+void signalErrorNoToken(enum errortype type, char* symbol, u64 position);
 
 u64 getErrorCount();
 Error* getNextError();
