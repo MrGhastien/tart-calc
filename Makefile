@@ -1,13 +1,19 @@
+CC = gcc
+AS = nasm
 CFLAGS = -Wall -Wextra -I./include -g -Werror=return-type -fsanitize=address
+ASFLAGS = -g
+
 SRC = ./src
 HDR = ./include
 OBJ = ./obj
 BIN = ./bin
 
-SRCS = $(wildcard $(SRC)/*.c) $(wildcard $(SRC)/**/*.c)
-HDRS = $(wildcard $(HDR)/*.h) $(wildcard $(HDR)/**/*.h)
+SRCS := $(wildcard $(SRC)/*.c) $(wildcard $(SRC)/**/*.c)
+ASMS := $(wildcard $(SRC)/*.asm) $(wildcard $(SRC)/**/*.asm)
+HDRS := $(wildcard $(HDR)/*.h) $(wildcard $(HDR)/**/*.h)
 
-OBJS = $(patsubst $(SRC)/%.c,$(OBJ)/%.o,$(SRCS))
+OBJS := $(patsubst $(SRC)/%.c,$(OBJ)/%.o,$(SRCS))
+OBJS += $(patsubst $(SRC)/%.asm,$(OBJ)/%.o,$(ASMS))
 
 SUBDIRS := $(foreach n,$(OBJS),$(dir $(n)))
 
@@ -19,13 +25,17 @@ TARGET = $(BIN)/tartiflum
 all: $(TARGET)
 
 $(TARGET): $(OBJS) | $(BIN)/
-	@echo -e "\e[93mLinking $@...\e[0m"
-	gcc $(OBJS) $(CFLAGS) -o $@
+	@echo -e "\e[93mLinking Executable $@...\e[0m"
+	@$(CC) $(CFLAGS) -o $@ $(OBJS)
 	@echo -e "\e[92mFinished compiling!"
 
 $(OBJ)/%.o: $(SRC)/%.c $(HDRS) | $(SUBDIRS)
-	@echo -e "\e[33mCompiling $@...\e[0m"
-	@gcc -c $< $(CFLAGS) -o $@
+	@echo -e "\e[33mCompiling C source file $<...\e[0m"
+	@$(CC) -c $(CFLAGS) -o $@ $<
+
+$(OBJ)/%.o: $(SRC)/%.asm $(HDRS) | $(SUBDIRS)
+	@echo -e "\e[33mCompiling Assembly file $<...\e[0m"
+	@$(AS) $(ASFLAGS) -o $@ $<
 
 .SILENT:
 $(BIN)/ $(OBJ)/:
@@ -35,6 +45,5 @@ $(OBJ)/%/ $(BIN)/%/:
 	mkdir -p $@
 
 clean:
-	rm -fr bin
-	rm -fr obj
-
+	$(RM) $(OBJS)
+	$(RM) $(TARGET)

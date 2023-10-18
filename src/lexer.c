@@ -39,12 +39,12 @@ bool setCurrentId(Identifier newID, Identifier* id, LexerCtx* ctx) {
     return success;
 }
 
-darray* tokenize(const char* str) {
+bool tokenize(const char* str, darray* tokenBuffer) {
     LexerCtx ctx;
     ctx.position = 0;
     ctx.tokenPos = 0;
     initBuilder(&ctx.tokenBuilder);
-    ctx.tokens = darrayCreate(4, sizeof(Token*));
+    ctx.tokens = tokenBuffer;
 
     char c;
     u64 len = strlen(str);
@@ -91,5 +91,5 @@ darray* tokenize(const char* str) {
     }
     setCurrentId(_IDENTIFIER_SIZE, &currentId, &ctx);
     free(ctx.tokenBuilder.a);
-    return ctx.tokens;
+    return getErrorCount() == 0;
 }

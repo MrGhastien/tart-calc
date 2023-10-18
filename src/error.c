@@ -42,7 +42,10 @@ void signalErrorNoToken(enum errortype type, char* symbol, u64 position) {
         err(ERR_SYSTEM_UNINIT, "Attempt to report error while the system has not been initialized.");
         return;
     }
-    Error error = {type, position, false, {.symbol = symbol}};
+    Error error;
+    error.hasToken = false;
+    error.position = position;
+    error.type = type;
     darrayAdd(errors, error);
 }
 
@@ -103,8 +106,6 @@ void printErrors(const char* expression) {
         } else {
             printf("Erroneous symbol : %s\n", err->value.symbol);
             previewExprError(expression, err->value.symbol, err->position);
-            if (err->value.symbol)
-                free(err->value.symbol);
         }
     }
     darrayClear(errors);

@@ -41,22 +41,7 @@ int main(int argc, char **argv) {
     while (getline(&line, &size, stdin) > 0) {
 
         if (context.verbose) {
-            darray *tokens = tokenize(line);
-            printf("Identified %zu tokens.\n", darrayLength(tokens));
-            for (u64 i = 0; i < darrayLength(tokens); i++) {
-                Token *t;
-                darrayGet(tokens, i, &t);
-                printf("%s", t->symbol);
-            }
-            printf("%s", "\n");
-            EvalNode *node = parse(tokens);
-
-            printf("Build tree :\n");
-            printTree(node);
-            printf("\n==== End of tree ====\n");
-
-            double n = treeEval(node);
-            printf("Reuslt : %g\n", n);
+            
         } else {
             double result = evaluate(line);
             if (getErrorCount()) {

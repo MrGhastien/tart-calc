@@ -109,10 +109,15 @@ static void destroyToken(void* ptr) {
 }
 
 double evaluate(const char* expression) {
-    darray* tokens = tokenize(expression);
-    EvalNode* tree = parse(tokens);
+    darray tokenBuffer;
+    darrayInit(&tokenBuffer, 4, sizeof(Token));
+    tokenize(expression, &tokenBuffer);
+    EvalNode* tree = parse(&tokenBuffer);
     double result = treeEval(tree);
-    darrayDestroyDeep(tokens, &destroyToken);
+    for (u64 i = 0; i < darrayLength(&tokenBuffer); i++) {
+        Token* t = tokenBuffer.a + i;
+        free(t->symbol);
+    }
     if (tree)
         treeDestroy(tree);
     if (getErrorCount() > 0)

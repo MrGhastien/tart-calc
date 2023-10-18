@@ -2,7 +2,7 @@
 #include "eval-tree.h"
 #include "token.h"
 
-darray *tokenize(const char *str);
+bool tokenize(const char *str, darray* tokenBuffer);
 
 EvalNode *parse(darray *tokens);
 

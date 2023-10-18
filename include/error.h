@@ -22,9 +22,10 @@ typedef struct err {
     u64 position;
     bool hasToken;
     union errtoken {
-        char* symbol;
+        char symbol[50];
         Token* token;
     } value;
+    bool symbolTooLong;
 } Error;
 
 void initErrorSystem();
