@@ -13,26 +13,32 @@ static bool isDigit(char c) {
     return c >= '0' && c <= '9';
 }
 
+static bool endToken(Identifier id, LexerCtx* ctx) {
+
+    StringBuilder* builder = &ctx->tokenBuilder;
+    char* str = builderCreateString(builder);
+    Token* t;
+    if (id == _IDENTIFIER_SIZE) {
+        t = createToken(getIdentifier(str), str, ctx->tokenPos);
+    } else {
+        t = createToken(id, str, ctx->tokenPos);
+    }
+    if (t == null) {
+        signalErrorNoToken(ERR_UNKNOWN_TOKEN, str, ctx->tokenPos);
+        return false;
+    } else {
+        darrayAdd(ctx->tokens, t);
+    }
+    builderReset(builder);
+    return true;
+}
+
 bool setCurrentId(Identifier newID, Identifier* id, LexerCtx* ctx) {
     bool success = true;
     if (newID == *id)
         return true;
-    StringBuilder* builder = &ctx->tokenBuilder;
-    if (builderLength(builder) > 0) {
-        char* str = builderCreateString(builder);
-        Token* t;
-        if (*id == _IDENTIFIER_SIZE) {
-            t = createToken(getIdentifier(str), str, ctx->tokenPos);
-        } else {
-            t = createToken(*id, str, ctx->tokenPos);
-        }
-        if (t == null) {
-            signalErrorNoToken(ERR_UNKNOWN_TOKEN, str, ctx->tokenPos);
-            success = false;
-        } else {
-            darrayAdd(ctx->tokens, t);
-        }
-        builderReset(builder);
+    if (builderLength(&ctx->tokenBuilder) > 0) {
+        endToken(*id, ctx);
     }
     ctx->tokenPos = ctx->position;
     *id = newID;
@@ -65,12 +71,14 @@ bool tokenize(const char* str, darray* tokenBuffer) {
         if (c == '(') {
             setCurrentId(LPAREN, &currentId, &ctx);
             builderAppendc(&ctx.tokenBuilder, c);
+            endToken(currentId, &ctx);
             continue;
         }
 
         if (c == ')') {
             setCurrentId(RPAREN, &currentId, &ctx);
             builderAppendc(&ctx.tokenBuilder, c);
+            endToken(currentId, &ctx);
             continue;
         }
 
@@ -89,7 +97,7 @@ bool tokenize(const char* str, darray* tokenBuffer) {
         setCurrentId(OPERATOR, &currentId, &ctx);
         builderAppendc(&ctx.tokenBuilder, c);
     }
-    setCurrentId(_IDENTIFIER_SIZE, &currentId, &ctx);
+    endToken(currentId, &ctx);
     free(ctx.tokenBuilder.a);
     return getErrorCount() == 0;
 }

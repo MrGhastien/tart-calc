@@ -1,7 +1,7 @@
 CC = gcc
 AS = nasm
 CFLAGS = -Wall -Wextra -I./include -g -Werror=return-type -fsanitize=address
-ASFLAGS = -g
+ASFLAGS = -felf64 -g
 
 SRC = ./src
 HDR = ./include

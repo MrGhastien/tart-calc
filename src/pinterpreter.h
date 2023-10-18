@@ -10,8 +10,8 @@ typedef struct LexerCtx {
 
 typedef struct ParsingCtx {
     darray* tokens; //Token**
-    darray* operatorStack; //Token**
-    darray* outputQueue; //EvalNode**
+    darray operatorStack; //Token**
+    darray outputQueue; //EvalNode**
 } ParsingCtx;
 
 bool setCurrentId(Identifier newID, Identifier* id, LexerCtx* ctx);

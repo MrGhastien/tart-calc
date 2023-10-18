@@ -4,6 +4,8 @@
 #include "defines.h"
 #include "token.h"
 
+#define ERR_SYMBOL_MAX 50
+
 enum errortype {
     ERR_SYSTEM_UNINIT = -1,
 
@@ -22,7 +24,7 @@ typedef struct err {
     u64 position;
     bool hasToken;
     union errtoken {
-        char symbol[50];
+        char symbol[ERR_SYMBOL_MAX];
         Token* token;
     } value;
     bool symbolTooLong;

@@ -33,7 +33,7 @@ void signalError(enum errortype type, Token* token) {
         err(ERR_SYSTEM_UNINIT, "Attempt to report error while the system has not been initialized.");
         return;
     }
-    Error error = {type, !token ? 0 : token->position, true, {.token = token}};
+    Error error = {type, !token ? 0 : token->position, true, {.token = token}, false};
     darrayAdd(errors, error);
 }
 
@@ -46,6 +46,13 @@ void signalErrorNoToken(enum errortype type, char* symbol, u64 position) {
     error.hasToken = false;
     error.position = position;
     error.type = type;
+    u64 symbolLen = strlen(symbol);
+    error.symbolTooLong = symbolLen >= ERR_SYMBOL_MAX;
+    memcpy(error.value.symbol, symbol, error.symbolTooLong ? ERR_SYMBOL_MAX - 1 : symbolLen);
+    //If the string is too long, the null character is not copied.
+    //We need to add it manually.
+    if(error.symbolTooLong)
+        error.value.symbol[ERR_SYMBOL_MAX - 1] = 0;
     darrayAdd(errors, error);
 }
 
@@ -67,26 +74,35 @@ Error* getNextError() {
     return ((Error*)errors->a) + errIndex++;
 }
 
-static void previewExprError(const char* expression, const char* symbol, size_t pos) {
+static void previewExprError(const char* expression, const char* symbol, size_t pos, bool tooLongSymbol) {
     size_t symbolLen = strlen(symbol);
-    fputs("\x1b[22m", stdout);
-    for (size_t i = 0; expression[i]; i++) {
+    u64 exprlen = strlen(expression);
+    fputs("\x1b[22m", stderr);
+    u64 minIndex = pos < 50 ? 0 : pos - 50;
+    u64 maxIndex = pos + 50;
+    if(minIndex > 0)
+        fputs("...", stderr);
+    for (size_t i = minIndex; expression[i] && i < maxIndex; i++) {
         if (i == pos)
-            fputs("\x1b[31;1m", stdout);
+            fputs("\x1b[31;1m", stderr);
         else if (i == pos + symbolLen)
-            fputs("\x1b[39;22m", stdout);
-        putchar(expression[i]);
+            fputs("\x1b[39;22m", stderr);
+        fputc(expression[i], stderr);
     }
+    if(exprlen > maxIndex)
+        fputs("...", stderr);
     size_t j = 0;
     for (j = 0; j < pos; j++) {
-        putchar(' ');
+        fputc(' ', stderr);
     }
-    fputs("\e[31;1m", stdout);
-    putchar('^');
+    fputs("\e[31;1m", stderr);
+    fputc('^', stderr);
     for (j = 0; j < symbolLen - 1; j++) {
-        putchar('~');
+        fputc('-', stderr);
     }
-    printf("%s\n", "\e[0m");
+    if(tooLongSymbol)
+        fputs("...", stderr);
+    fprintf(stderr, "%s\n", "\e[0m");
 }
 
 void printErrors(const char* expression) {
@@ -94,18 +110,21 @@ void printErrors(const char* expression) {
     for (u64 i = 0; i < errCount; i++) {
         Error* err = ((Error*)errors->a) + i;
         if (err->position == (u64)-1) {
-            printf("Error when evaluating : %s\n", messages[err->type]);
+            fprintf(stderr, "Error when evaluating : %s\n", messages[err->type]);
             continue;
         }
 
         printf("Error at position %zu : %s\n", err->position, messages[err->type]);
         if (err->hasToken) {
             Token* tok = err->value.token;
-            printf("Problematic token : '%s' [%i]\n", tok->symbol, tok->identifier);
-            previewExprError(expression, tok->symbol, err->position);
+            fprintf(stderr, "Problematic token : '%s' [%i]\n", tok->symbol, tok->identifier);
+            previewExprError(expression, tok->symbol, err->position, false);
         } else {
-            printf("Erroneous symbol : %s\n", err->value.symbol);
-            previewExprError(expression, err->value.symbol, err->position);
+            fprintf(stderr, "Erroneous symbol : %s", err->value.symbol);
+            if(err->symbolTooLong)
+                fputs("...", stderr);
+            fputc('\n', stderr);
+            previewExprError(expression, err->value.symbol, err->position, err->symbolTooLong);
         }
     }
     darrayClear(errors);
