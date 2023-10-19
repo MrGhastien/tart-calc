@@ -21,6 +21,7 @@ darray *darrayCreate(u64 size, u64 stride);
 void darrayInit(darray* array, u64 size, u64 stride);
 
 void darrayDestroy(darray *array);
+void darrayEmpty(darray *array);
 
 /**
  * Adds an element ELEMENT to the end of the ARRAY.
@@ -55,10 +56,14 @@ bool darrayPop(darray *array, void *out);
 bool darrayPeek(darray *array, void *out);
 
 bool darrayGet(darray *array, u64 index, void *out);
+void* darrayGetPtr(darray* array, u64 index);
 
 void darrayClear(darray *array);
 
 typedef void (*destructor)(void*);
+
+//Clear the given array, and destroy each element using the given destructor.
+void darrayClearDeep(darray* darray, destructor freeFunc);
 
 //Free the given array, and apply the given destructor to ensure no memory leaks
 //occur.

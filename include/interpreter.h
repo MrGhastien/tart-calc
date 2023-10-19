@@ -6,4 +6,4 @@ bool tokenize(const char *str, darray* tokenBuffer);
 
 EvalNode *parse(darray *tokens);
 
-double evaluate(const char *expression);
+bool evaluate(const char* expression, double* outResult);

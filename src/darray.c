@@ -20,8 +20,12 @@ void darrayInit(darray *array, u64 size, u64 stride) {
 }
 
 void darrayDestroy(darray* array) {
-    free(array->a);
+    darrayEmpty(array);
     free(array);
+}
+
+void darrayEmpty(darray* array) {
+    free(array->a);
 }
 
 u64 darrayCapacity(darray *array) {
@@ -135,13 +139,25 @@ bool darrayGet(darray* array, u64 index, void* out) {
     return true;
 }
 
+void* darrayGetPtr(darray* array, u64 index) {
+    if (index >= darrayLength(array)) {
+        return null;
+    }
+    return array->a + index * array->stride;
+}
+
 void darrayClear(darray* array) {
     array->length = 0;
 }
 
-void darrayDestroyDeep(darray* array, destructor freeFunc) {
+void darrayClearDeep(darray* array, destructor freeFunc) {
     for (u64 i = 0; i < array->length; i++) {
-        freeFunc(array->a + i * array->stride);
+        freeFunc(darrayGetPtr(array, i));
     }
+    darrayClear(array);
+}
+
+void darrayDestroyDeep(darray* array, destructor freeFunc) {
+    darrayClearDeep(array, freeFunc);
     darrayDestroy(array);
 }

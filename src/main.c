@@ -43,8 +43,9 @@ int main(int argc, char **argv) {
         if (context.verbose) {
             
         } else {
-            double result = evaluate(line);
-            if (getErrorCount()) {
+            double result;
+            bool ok = evaluate(line, &result);
+            if (!ok) {
                 puts("\e[31mFailed to compute result.\e[0m");
             } else {
                 printf("\e[32m=> %g\e[0m\n\n", result);
@@ -58,9 +59,9 @@ int main(int argc, char **argv) {
 }
 
 void darrayPrintTokenPtr(darray *array) {
-    Token** raw = array->a;
+    Token* t;
     for (u64 i = 0; i < darrayLength(array); i++) {
-        Token *t = raw[i];
+        t = darrayGetPtr(array, i);
         printf("{id=%i, symbol='%s', value={number=%g, op={priority=%i, rightAssoc=%i}}, func={ptr=%p, arity=%u}",
                t->identifier, t->symbol, t->value.number, t->value.operator.priority ,t->value.operator.rightAssociative, t->function.ptr, t->function.arity);
         putchar('\n');

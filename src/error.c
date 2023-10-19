@@ -26,6 +26,7 @@ void initErrorSystem() {
     MSG(ERR_ALLOC_FAIL, "Memory allocation failed.");
     MSG(ERR_UNKNOWN_TOKEN, "Unknown token.");
     MSG(ERR_DIV_BY_ZERO, "Division by zero.");
+    MSG(ERR_INVALID_EXPR, "Malformed expression.");
 }
 
 void signalError(enum errortype type, Token* token) {

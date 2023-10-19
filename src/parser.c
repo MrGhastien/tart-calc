@@ -15,6 +15,7 @@ static bool popOperator(ParsingCtx* ctx) {
         if (!darrayRemove(&ctx->outputQueue, darrayLength(&ctx->outputQueue) - i, &n)) {
             // Operator is missing an operand !
             signalError(ERR_OP_MISSING_OPERAND, t);
+            treeDestroy(node);
             return false;
         }
         treeAddChild(node, n);
@@ -54,6 +55,10 @@ static bool handleParen(ParsingCtx* ctx, Token* parenToken) {
     return true;
 }
 
+static void freeTree(void* ptr) {
+    treeDestroy(*(EvalNode**)ptr);
+}
+
 EvalNode* parse(darray* tokens) {
     if (getErrorCount() > 0)
         return null;
@@ -61,9 +66,9 @@ EvalNode* parse(darray* tokens) {
     darrayInit(&ctx.operatorStack, 4, sizeof(Token*));
     darrayInit(&ctx.outputQueue, 4, sizeof(Token*));
 
-    Token* t = null;
+    Token* t;
     for (u64 i = 0; i < darrayLength(tokens); i++) {
-        darrayGet(tokens, i, &t);
+        t = darrayGetPtr(tokens, i);
         Identifier id = t->identifier;
         EvalNode* node;
         switch (id) {
@@ -89,37 +94,46 @@ EvalNode* parse(darray* tokens) {
     while (darrayPeek(&ctx.operatorStack, &op)) {
         if (op->identifier == LPAREN) {
             signalError(ERR_MISMATCH_PAREN, op);
-            return NULL;
+            break;
         }
         popOperator(&ctx);
     }
-    if (getErrorCount() > 0)
-        return NULL;
     EvalNode* node;
+    if (darrayLength(&ctx.outputQueue) > 1) {
+        darrayGet(&ctx.outputQueue, 1, &node);
+        signalError(ERR_INVALID_EXPR, node->token);
+    }
     darrayGet(&ctx.outputQueue, 0, &node);
+    if (getErrorCount() > 0) {
+        //In this case, destroy all tree nodes we created
+        //or else MEMORY LEAKS 
+        darrayClearDeep(&ctx.outputQueue, &freeTree);
+        darrayClearDeep(&ctx.operatorStack, &freeTree);
+        node = null;
+    }
+    darrayEmpty(&ctx.operatorStack);
+    darrayEmpty(&ctx.outputQueue);
     return node;
 }
 
-static void destroyToken(void* ptr) {
-    Token** tok = ptr;
-    free((*tok)->symbol);
-    free(*tok);
-}
-
-double evaluate(const char* expression) {
+bool evaluate(const char* expression, double* outResult) {
+    bool success = true;
     darray tokenBuffer;
     darrayInit(&tokenBuffer, 4, sizeof(Token));
     tokenize(expression, &tokenBuffer);
     EvalNode* tree = parse(&tokenBuffer);
     double result = treeEval(tree);
-    for (u64 i = 0; i < darrayLength(&tokenBuffer); i++) {
-        Token* t = tokenBuffer.a + i;
-        free(t->symbol);
-    }
+    *outResult = result;
     if (tree)
         treeDestroy(tree);
-    if (getErrorCount() > 0)
+    if (getErrorCount() > 0) {
         printErrors(expression);
-
-    return result;
+        success = false;
+    }
+    for (u64 i = 0; i < darrayLength(&tokenBuffer); i++) {
+        Token* t = darrayGetPtr(&tokenBuffer, i);
+        free(t->symbol);
+    }
+    darrayEmpty(&tokenBuffer);
+    return success;
 }

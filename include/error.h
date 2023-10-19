@@ -15,6 +15,7 @@ enum errortype {
     ERR_ALLOC_FAIL,
     ERR_UNKNOWN_TOKEN,
     ERR_DIV_BY_ZERO,
+    ERR_INVALID_EXPR,
 
     _ERR_SIZE
 };

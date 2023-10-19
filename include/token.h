@@ -39,7 +39,7 @@ enum OperatorType {
 
 const char* getSymbol(Identifier identifier);
 Identifier getIdentifier(const char* symbol);
-Token* createToken(Identifier identifier, char* symbol, u64 position);
+bool initToken(Token* tok, Identifier identifier, char* symbol, u64 position);
 bool isGeneric(Identifier identifier);
 
 bool operatorFromSymbol(const char *str, Token* newToken);

@@ -40,34 +40,27 @@ Identifier getIdentifier(const char *symbol) {
     return _IDENTIFIER_SIZE;
 }
 
-Token *createToken(Identifier identifier, char *symbol, u64 position) {
-    Token *t = malloc(sizeof *t);
-    if (!t) {
-        signalError(ERR_ALLOC_FAIL, null);
-        return null;
-    }
-    t->identifier = identifier;
-    t->symbol = symbol;
-    t->position = position;
+bool initToken(Token* tok, Identifier identifier, char *symbol, u64 position) {
+    tok->identifier = identifier;
+    tok->symbol = symbol;
+    tok->position = position;
     switch (identifier) {
     case _IDENTIFIER_SIZE:
-        free(t);
-        return null;
+        return false;
     case OPERATOR:
-        if (!operatorFromSymbol(symbol, t)) {
-            free(t);
-            return NULL;
+        if (!operatorFromSymbol(symbol, tok)) {
+            return false;
         }
         break;
     case NUMBER:
-        t->value.number = strtod(symbol, null);
+        tok->value.number = strtod(symbol, null);
         break;
     default:
-        t->function = NONE;
-        t->value.number = 0;
+        tok->function = NONE;
+        tok->value.number = 0;
         break;
     }
-    return t;
+    return true;
 }
 
 bool isGeneric(Identifier identifier) { return identifier >= LPAREN && identifier < _IDENTIFIER_SIZE; }

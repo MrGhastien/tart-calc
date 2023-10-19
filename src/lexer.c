@@ -15,16 +15,15 @@ static bool isDigit(char c) {
 
 static bool endToken(Identifier id, LexerCtx* ctx) {
 
+    if(builderLength(&ctx->tokenBuilder) == 0)
+        return true;
     StringBuilder* builder = &ctx->tokenBuilder;
     char* str = builderCreateString(builder);
-    Token* t;
-    if (id == _IDENTIFIER_SIZE) {
-        t = createToken(getIdentifier(str), str, ctx->tokenPos);
-    } else {
-        t = createToken(id, str, ctx->tokenPos);
-    }
-    if (t == null) {
+    Token t;
+    bool ok = initToken(&t, id, str, ctx->tokenPos);
+    if (!ok) {
         signalErrorNoToken(ERR_UNKNOWN_TOKEN, str, ctx->tokenPos);
+        free(str);
         return false;
     } else {
         darrayAdd(ctx->tokens, t);
@@ -37,9 +36,7 @@ bool setCurrentId(Identifier newID, Identifier* id, LexerCtx* ctx) {
     bool success = true;
     if (newID == *id)
         return true;
-    if (builderLength(&ctx->tokenBuilder) > 0) {
-        endToken(*id, ctx);
-    }
+    endToken(*id, ctx);
     ctx->tokenPos = ctx->position;
     *id = newID;
     return success;
