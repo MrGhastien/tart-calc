@@ -4,6 +4,7 @@
 #include "string-builder.h"
 #include "token.h"
 #include "error.h"
+#include "var-handler.h"
 
 #include <err.h>
 #include <stdio.h>
@@ -35,11 +36,14 @@ int main(int argc, char **argv) {
 
     initTokens();
     initOperators();
+    initVariables();
 
     char *line = null;
     u64 size;
     while (getline(&line, &size, stdin) > 0) {
 
+        if(line[0] == '\n')
+            continue;
         if (context.verbose) {
             
         } else {
@@ -53,6 +57,7 @@ int main(int argc, char **argv) {
         }
     }
     free(line);
+    shutVariables();
     shutTokens();
     shutErrorSystem();
     return 0;

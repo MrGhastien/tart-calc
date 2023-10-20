@@ -16,6 +16,8 @@ enum errortype {
     ERR_UNKNOWN_TOKEN,
     ERR_DIV_BY_ZERO,
     ERR_INVALID_EXPR,
+    ERR_NO_INPUT,
+    ERR_UNDEFINED_VAR,
 
     _ERR_SIZE
 };

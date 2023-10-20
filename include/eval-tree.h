@@ -14,6 +14,6 @@ EvalNode* treeCreate(Token* token);
 void treeAddChild(EvalNode* parent, EvalNode* child);
 
 void printTree(EvalNode* tree);
-double treeEval(EvalNode* tree);
+bool treeEval(EvalNode* tree, double* outResult);
 
 void treeDestroy(EvalNode* node);

@@ -5,15 +5,26 @@
 typedef enum {
     OPERATOR = 0,
     NUMBER,
+    ALPHA,
 
     LPAREN, RPAREN, SEMI,
 
     _IDENTIFIER_SIZE
 } Identifier;
 
+enum OperatorType {
+    OPERATOR_ADD,
+    OPERATOR_SUBTRACT,
+    OPERATOR_MULTIPLY,
+    OPERATOR_DIVIDE,
+    OPERATOR_ASSIGN,
+    _OPERATOR_SIZE
+};
+
 typedef struct {
     i8 priority;
     bool rightAssociative;
+    enum OperatorType type;
 } Operator;
 
 typedef struct {
@@ -29,13 +40,6 @@ typedef struct {
     u64 position;
 } Token;
 
-enum OperatorType {
-    OPERATOR_ADD,
-    OPERATOR_SUBTRACT,
-    OPERATOR_MULTIPLY,
-    OPERATOR_DIVIDE,
-    _OPERATOR_SIZE
-};
 
 const char* getSymbol(Identifier identifier);
 Identifier getIdentifier(const char* symbol);

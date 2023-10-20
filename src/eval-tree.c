@@ -1,28 +1,29 @@
 #include "eval-tree.h"
 #include "error.h"
+#include "var-handler.h"
 
-#include <stdlib.h>
 #include <stdio.h>
+#include <stdlib.h>
 
-EvalNode *treeCreate(Token *token) {
+EvalNode* treeCreate(Token* token) {
     EvalNode* node = malloc(sizeof *node);
-    if(node == null)
+    if (node == null)
         return null;
 
     node->children = darrayCreate(2, sizeof(EvalNode*));
     node->parent = null;
     node->token = token;
-    node->function = token->function.ptr; //TODO
+    node->function = token->function.ptr; // TODO
     node->arity = token->function.arity;
     return node;
 }
 
-void treeAddChild(EvalNode *parent, EvalNode *child) {
+void treeAddChild(EvalNode* parent, EvalNode* child) {
     darrayAdd(parent->children, child);
     child->parent = parent;
 }
 
-static void printTreeRec(EvalNode *tree, u64 level) {
+static void printTreeRec(EvalNode* tree, u64 level) {
     for (u64 i = 0; i < level; i++) {
         printf("%s", "  ");
     }
@@ -34,24 +35,56 @@ static void printTreeRec(EvalNode *tree, u64 level) {
     }
 }
 
-void printTree(EvalNode *tree) {
+void printTree(EvalNode* tree) {
     printTreeRec(tree, 0);
 }
 
-double treeEval(EvalNode *tree) {
-    if(getErrorCount() > 0)
-        return 0;
-    if(tree->token->identifier == NUMBER)
-        return tree->token->value.number;
+static double evalAssign(EvalNode* tree, double* outResult) {
+    EvalNode* var;
+    EvalNode* expr;
+    darrayGet(tree->children, 0, &var);
+    darrayGet(tree->children, 1, &expr);
+    if (!treeEval(expr, outResult)) {
+        return false;
+    }
+    setVariable(var->token->symbol, *outResult);
+    return true;
+}
+
+static double evalOperator(EvalNode* tree, double* outResult) {
     double args[tree->arity];
     for (u64 i = 0; i < tree->arity; i++) {
-        if(getErrorCount() > 0)
+        if (getErrorCount() > 0)
             return 0;
         EvalNode* node;
         darrayGet(tree->children, i, &node);
-        args[i] = treeEval(node);
+        if (!treeEval(node, args + i))
+            return false;
     }
-    return tree->function(args);
+    *outResult = tree->function(args);
+    return true;
+}
+
+bool treeEval(EvalNode* tree, double* outResult) {
+    if (getErrorCount() > 0)
+        return false;
+    switch (tree->token->identifier) {
+    case NUMBER:
+         *outResult = tree->token->value.number;
+         return true;
+    case ALPHA: {
+        if (!getVariable(tree->token->symbol, outResult)) {
+            signalError(ERR_UNDEFINED_VAR, tree->token);
+            return false;
+        }
+        return true;
+    }
+    default:
+        if (tree->token->value.operator.type == OPERATOR_ASSIGN)
+            return evalAssign(tree, outResult);
+        else
+            return evalOperator(tree, outResult);
+    }
 }
 
 void treeDestroy(EvalNode* tree) {

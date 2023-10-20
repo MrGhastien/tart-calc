@@ -6,6 +6,7 @@
     op##name->symbol = _symbol;\
     op##name->value.operator.priority = _priority;\
     op##name->value.operator.rightAssociative = _rightAssociative;\
+    op##name->value.operator.type = OPERATOR_##name;\
     op##name->function = name
 
 
@@ -16,6 +17,7 @@ void initOperators() {
     DEF_OP(SUBTRACT, "-", 2, false);
     DEF_OP(MULTIPLY, "*", 3, false);
     DEF_OP(DIVIDE, "/", 3, false);
+    DEF_OP(ASSIGN, "=", 0, true);
 }
 
 bool operatorFromSymbol(const char *str, Token* newToken) {

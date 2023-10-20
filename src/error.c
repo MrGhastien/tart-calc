@@ -27,6 +27,8 @@ void initErrorSystem() {
     MSG(ERR_UNKNOWN_TOKEN, "Unknown token.");
     MSG(ERR_DIV_BY_ZERO, "Division by zero.");
     MSG(ERR_INVALID_EXPR, "Malformed expression.");
+    MSG(ERR_NO_INPUT, "No input.");
+    MSG(ERR_UNDEFINED_VAR, "Undefined variable.");
 }
 
 void signalError(enum errortype type, Token* token) {
@@ -47,13 +49,17 @@ void signalErrorNoToken(enum errortype type, char* symbol, u64 position) {
     error.hasToken = false;
     error.position = position;
     error.type = type;
-    u64 symbolLen = strlen(symbol);
-    error.symbolTooLong = symbolLen >= ERR_SYMBOL_MAX;
-    memcpy(error.value.symbol, symbol, error.symbolTooLong ? ERR_SYMBOL_MAX - 1 : symbolLen);
-    //If the string is too long, the null character is not copied.
-    //We need to add it manually.
-    if(error.symbolTooLong)
-        error.value.symbol[ERR_SYMBOL_MAX - 1] = 0;
+    if (!symbol) {
+        error.value.symbol[0] = 0;
+    } else {
+        u64 symbolLen = strlen(symbol);
+        error.symbolTooLong = symbolLen >= ERR_SYMBOL_MAX;
+        memcpy(error.value.symbol, symbol, error.symbolTooLong ? ERR_SYMBOL_MAX - 1 : symbolLen);
+        // If the string is too long, the null character is not copied.
+        // We need to add it manually.
+        if (error.symbolTooLong)
+            error.value.symbol[ERR_SYMBOL_MAX - 1] = 0;
+    }
     darrayAdd(errors, error);
 }
 

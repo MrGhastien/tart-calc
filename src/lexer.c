@@ -13,6 +13,10 @@ static bool isDigit(char c) {
     return c >= '0' && c <= '9';
 }
 
+static bool isAlpha(char c) {
+    return (c >= 'a' && c <= 'z') || (c >= 'A' && c <= 'Z');
+}
+
 static bool endToken(Identifier id, LexerCtx* ctx) {
 
     if(builderLength(&ctx->tokenBuilder) == 0)
@@ -85,9 +89,9 @@ bool tokenize(const char* str, darray* tokenBuffer) {
             continue;
         }
 
-        if (isGeneric(getIdentifier(builderStringRef(&ctx.tokenBuilder)))) {
-            // builderDeleteAt(tokenBuilder, builderLength(tokenBuilder) - 1);
-            setCurrentId(_IDENTIFIER_SIZE, &currentId, &ctx);
+        if (isAlpha(c)) {
+            setCurrentId(ALPHA, &currentId, &ctx);
+            builderAppendc(&ctx.tokenBuilder, c);
             continue;
         }
 

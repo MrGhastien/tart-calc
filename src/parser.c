@@ -73,6 +73,7 @@ EvalNode* parse(darray* tokens) {
         EvalNode* node;
         switch (id) {
         case NUMBER:
+        case ALPHA:
             node = treeCreate(t);
             darrayAdd(&ctx.outputQueue, node);
             break;
@@ -120,10 +121,9 @@ bool evaluate(const char* expression, double* outResult) {
     bool success = true;
     darray tokenBuffer;
     darrayInit(&tokenBuffer, 4, sizeof(Token));
-    tokenize(expression, &tokenBuffer);
+    success = tokenize(expression, &tokenBuffer);
     EvalNode* tree = parse(&tokenBuffer);
-    double result = treeEval(tree);
-    *outResult = result;
+    success = treeEval(tree, outResult);
     if (tree)
         treeDestroy(tree);
     if (getErrorCount() > 0) {

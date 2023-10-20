@@ -1,5 +1,6 @@
 #include "function.h"
 #include "error.h"
+#include "var-handler.h"
 
 static Function* functions;
 
@@ -26,7 +27,13 @@ double funcDivide(double* args) {
     return args[0] / args[1];
 }
 
+double funcAssign(char* symbol, double value) {
+    setVariable(symbol, value);
+    return value;
+}
+
 const Function ADD = {funcAdd, 2};
 const Function SUBTRACT = {funcSubtract, 2};
 const Function MULTIPLY = {funcMultiply, 2};
 const Function DIVIDE = {funcDivide, 2};
+const Function ASSIGN = {null, 2};
