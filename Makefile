@@ -2,6 +2,8 @@ CC = gcc
 AS = nasm
 CFLAGS = -Wall -Wextra -I./include -g -Werror=return-type -fsanitize=address
 ASFLAGS = -felf64 -g
+LDFLAGS = -fsanitize=address
+LDLIBS = -lm
 
 SRC = ./src
 HDR = ./include
@@ -26,7 +28,7 @@ all: $(TARGET)
 
 $(TARGET): $(OBJS) | $(BIN)/
 	@echo -e "\e[93mLinking Executable $@...\e[0m"
-	@$(CC) $(CFLAGS) -o $@ $(OBJS)
+	@$(CC) $(LDFLAGS) $(LDLIBS) -o $@ $(OBJS)
 	@echo -e "\e[92mFinished compiling!"
 
 $(OBJ)/%.o: $(SRC)/%.c $(HDRS) | $(SUBDIRS)

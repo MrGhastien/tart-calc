@@ -17,6 +17,8 @@ void initOperators() {
     DEF_OP(SUBTRACT, "-", 2, false);
     DEF_OP(MULTIPLY, "*", 3, false);
     DEF_OP(DIVIDE, "/", 3, false);
+    DEF_OP(MODULO, "%", 3, false);
+    DEF_OP(POWER, "^", 3, true);
     DEF_OP(ASSIGN, "=", 0, true);
 }
 

@@ -15,6 +15,7 @@ EvalNode* treeCreate(Token* token) {
     node->token = token;
     node->function = token->function.ptr; // TODO
     node->arity = token->function.arity;
+    node->optimized = false;
     return node;
 }
 
@@ -80,6 +81,10 @@ bool treeEval(EvalNode* tree, double* outResult) {
         return true;
     }
     default:
+        if (tree->optimized) {
+            *outResult = tree->optimizedValue;
+            return true;
+        }
         if (tree->token->value.operator.type == OPERATOR_ASSIGN)
             return evalAssign(tree, outResult);
         else

@@ -6,6 +6,26 @@
 #include "./pinterpreter.h"
 #include <stdlib.h>
 
+static void optimize(EvalNode* node) {
+    for (u64 i = 0; i < node->arity; i++) {
+        EvalNode* child;
+        darrayGet(node->children, i, &child);
+        if(!child->optimized && child->token->identifier != NUMBER)
+            return;
+    }
+    double val;
+    if(!treeEval(node, &val))
+        return;
+    for (u64 i = 0; i < node->arity; i++) {
+        EvalNode* child;
+        darrayGet(node->children, i, &child);
+        treeDestroy(child);
+    }
+    darrayClear(node->children);
+    node->optimized = true;
+    node->optimizedValue = val;
+}
+
 static bool popOperator(ParsingCtx* ctx) {
     Token* t;
     darrayPop(&ctx->operatorStack, &t);
@@ -20,17 +40,24 @@ static bool popOperator(ParsingCtx* ctx) {
         }
         treeAddChild(node, n);
     }
+    optimize(node);
     darrayAdd(&ctx->outputQueue, node);
     return true;
 }
 
-static bool handleOperator(Token* token, ParsingCtx* ctx) {
-    Operator* op = &token->value.operator;
+static bool shouldPop(Token* tok, ParsingCtx* ctx) {
+    Operator* op = &tok->value.operator;
     Token* t2;
-    while (darrayPeek(&ctx->operatorStack, &t2) && t2->identifier == OPERATOR) {
-        Operator* o2 = &t2->value.operator;
-        if (o2->priority < op->priority || (o2->priority == op->priority && !op->rightAssociative))
-            break;
+    bool shouldPop = darrayPeek(&ctx->operatorStack, &t2) && t2->identifier == OPERATOR;
+    if(!shouldPop)
+        return false;
+    Operator* op2 = &t2->value.operator;
+    shouldPop = shouldPop && (op2->priority > op->priority || (op2->priority == op->priority && !op->rightAssociative));
+    return shouldPop;
+}
+
+static bool handleOperator(Token* token, ParsingCtx* ctx) {
+    while (shouldPop(token, ctx)) {
         if (!popOperator(ctx))
             return false;
     }
@@ -102,7 +129,7 @@ EvalNode* parse(darray* tokens) {
     EvalNode* node;
     if (darrayLength(&ctx.outputQueue) > 1) {
         darrayGet(&ctx.outputQueue, 1, &node);
-        signalError(ERR_INVALID_EXPR, node->token);
+            signalError(ERR_INVALID_EXPR, node->token);
     }
     darrayGet(&ctx.outputQueue, 0, &node);
     if (getErrorCount() > 0) {

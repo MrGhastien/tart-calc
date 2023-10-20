@@ -15,6 +15,8 @@ extern const Function ADD;
 extern const Function SUBTRACT;
 extern const Function MULTIPLY;
 extern const Function DIVIDE;
+extern const Function MODULO;
+extern const Function POWER;
 extern const Function ASSIGN;
 
 #endif /* ! FUNCTION_H */

@@ -3,10 +3,12 @@
 
 typedef struct eval_node {
     functionptr function;
-    u32 arity;
     Token* token;
+    double optimizedValue;
     darray* children; // struct eval_node**
     struct eval_node* parent;
+    u32 arity;
+    bool optimized;
 } EvalNode;
 
 EvalNode* treeCreate(Token* token);

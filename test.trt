@@ -1,3 +1,7 @@
 gaming = 78 + 8 / 3
+
 cc = gaming * 16 * 9
+
+
+
 (cc + gaming + 16) / (cc / 17)
