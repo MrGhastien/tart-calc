@@ -40,7 +40,7 @@ u64 darrayLength(darray *array) {
     return array->length;
 }
 
-static void* ensureCapacity(darray* array) {
+static bool ensureCapacity(darray* array) {
     u64 capacity = darrayCapacity(array);
     u64 stride = darrayStride(array);
     u64 newCapacity = capacity << 1;
@@ -50,7 +50,7 @@ static void* ensureCapacity(darray* array) {
         return false;
     array->a = ptr;
     array->capacity = newCapacity;
-    return array;
+    return true;
 }
 
 void _darrayAdd(darray* array, void *element) {
@@ -59,7 +59,8 @@ void _darrayAdd(darray* array, void *element) {
     u64 length = darrayLength(array);
 
     if (capacity <= length) {
-        array = ensureCapacity(array);
+        if(!ensureCapacity(array))
+            return;
         capacity = darrayCapacity(array);
     }
 
@@ -76,7 +77,8 @@ void _darrayInsert(darray* array, void *element, u64 index) {
     }
 
     if (capacity == length) {
-        array = ensureCapacity(array);
+        if(!ensureCapacity(array))
+            return;
         capacity = darrayCapacity(array);
     }
 
