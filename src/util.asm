@@ -1,7 +1,9 @@
-    GLOBAL memcpy, strlen, streq
+    GLOBAL memcpy, strlen, streq, maxl, max
 
 memcpy:
     mov rax,rdi                 ;Return the address of the destination
+    test rdx, rdx
+    jz .endloop
     .loop:
     cmp rdx, 0                  ;Are there remaining bytes to copy ?
     jz .endloop                 ;If no, then get out of the loop
@@ -51,4 +53,20 @@ streq:
     ret
     .ret_false:
     mov rax, 0
+    ret
+
+maxl:
+    mov rax, rdi
+    cmp rax, rdi
+    jge .ret
+    mov rax, rsi
+    .ret:
+    ret
+
+max:
+    mov eax, edi
+    cmp edi, esi
+    jge .ret
+    mov eax, esi
+    .ret:
     ret

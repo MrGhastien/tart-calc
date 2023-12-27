@@ -13,8 +13,7 @@ static void optimize(EvalNode* node) {
         if(!child->optimized && child->token->identifier != NUMBER)
             return;
     }
-    double val;
-    if(!treeEval(node, &val))
+    if(!treeEval(node, &node->optimizedValue))
         return;
     for (u64 i = 0; i < node->arity; i++) {
         EvalNode* child;
@@ -23,7 +22,6 @@ static void optimize(EvalNode* node) {
     }
     darrayClear(node->children);
     node->optimized = true;
-    node->optimizedValue = val;
 }
 
 static bool popOperator(ParsingCtx* ctx) {
@@ -65,7 +63,7 @@ static bool handleOperator(Token* token, ParsingCtx* ctx) {
     return true;
 }
 
-// The parameter 't' is only used for error reporting
+// The parameter 'parenToken' is only used for error reporting
 static bool handleParen(ParsingCtx* ctx, Token* parenToken) {
     Token* t;
     while (darrayPeek(&ctx->operatorStack, &t) && t->identifier != LPAREN) {
@@ -86,6 +84,7 @@ static void freeTree(void* ptr) {
     treeDestroy(*(EvalNode**)ptr);
 }
 
+// Using the Shunting Yard algorithm
 EvalNode* parse(darray* tokens) {
     if (getErrorCount() > 0)
         return null;

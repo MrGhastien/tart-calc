@@ -8,41 +8,33 @@ static Function* functions;
 void initFunctions() {
 }
 
-double funcAdd(double* args) {
-    return args[0] + args[1];
+//TODO: all of these !
+bool funcAdd(Value* args, Value* outResult) {
+    return true;
 }
 
-double funcSubtract(double* args) {
-    return args[0] - args[1];
+bool funcSubtract(Value* args, Value* outResult) {
+    return true;
 }
 
-double funcMultiply(double* args) {
-    return args[0] * args[1];
+bool funcMultiply(Value* args, Value* outResult) {
+    return true;
 }
 
-double funcDivide(double* args) {
-    if (args[1] == 0) {
-        signalErrorNoToken(ERR_DIV_BY_ZERO, null, -1);
-        return 0;
-    }
-    return args[0] / args[1];
+bool funcDivide(Value* args, Value* outResult) {
+    return true;
 }
 
-double funcModulo(double* args) {
-    if (args[1] == 0) {
-        signalErrorNoToken(ERR_DIV_BY_ZERO, null, -1);
-        return 0;
-    }
-    return (i64)args[0] % (i64)args[1];
+bool funcModulo(Value* args, Value* outResult) {
+    return true;
 }
 
-double funcPower(double* args) {
-    return pow(args[0], args[1]);
+bool funcPower(Value* args, Value* outResult) {
+    return true;
 }
 
-double funcAssign(char* symbol, double value) {
-    setVariable(symbol, value);
-    return value;
+bool funcAssign(char* symbol, Value* value) {
+    return true;
 }
 
 const Function ADD = {funcAdd, 2};

@@ -2,8 +2,9 @@
 #define FUNCTION_H
 
 #include "defines.h"
+#include "value.h"
 
-typedef double (*functionptr)(double* arguments);
+typedef bool (*functionptr)(Value* arguments, Value* outResult);
 
 typedef struct func_t {
     functionptr ptr;

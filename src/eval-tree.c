@@ -40,7 +40,7 @@ void printTree(EvalNode* tree) {
     printTreeRec(tree, 0);
 }
 
-static double evalAssign(EvalNode* tree, double* outResult) {
+static double evalAssign(EvalNode* tree, Value* outResult) {
     EvalNode* var;
     EvalNode* expr;
     darrayGet(tree->children, 0, &var);
@@ -48,11 +48,11 @@ static double evalAssign(EvalNode* tree, double* outResult) {
     if (!treeEval(expr, outResult)) {
         return false;
     }
-    setVariable(var->token->symbol, *outResult);
+    setVariable(var->token->symbol, outResult);
     return true;
 }
 
-static double evalOperator(EvalNode* tree, double* outResult) {
+static double evalOperator(EvalNode* tree, Value* outResult) {
     double args[tree->arity];
     for (u64 i = 0; i < tree->arity; i++) {
         if (getErrorCount() > 0)
@@ -62,11 +62,10 @@ static double evalOperator(EvalNode* tree, double* outResult) {
         if (!treeEval(node, args + i))
             return false;
     }
-    *outResult = tree->function(args);
-    return true;
+    return tree->function(args, outResult);
 }
 
-bool treeEval(EvalNode* tree, double* outResult) {
+bool treeEval(EvalNode* tree, Value* outResult) {
     if (getErrorCount() > 0)
         return false;
     switch (tree->token->identifier) {
