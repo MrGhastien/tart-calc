@@ -53,11 +53,11 @@ bool initToken(Token* tok, Identifier identifier, char *symbol, u64 position) {
         }
         break;
     case NUMBER:
-        tok->value.number = strtod(symbol, null);
+        //tok->value.number = strtod(symbol, null);
         break;
     default:
         tok->function = NONE;
-        tok->value.number = 0;
+        //tok->value.number = 0;
         break;
     }
     return true;
@@ -68,9 +68,9 @@ bool isGeneric(Identifier identifier) { return identifier >= LPAREN && identifie
 void initTokens() {
     darrayInit(&prebuilt, 4, sizeof(Token));
     Token t;
-    DEF_TOKEN(LPAREN, "(", number = 0, NONE);
-    DEF_TOKEN(RPAREN, ")", number = 0, NONE);
-    DEF_TOKEN(SEMI, ";", number = 0, NONE);
+    //DEF_TOKEN(LPAREN, "(", number = 0, NONE);
+    //DEF_TOKEN(RPAREN, ")", number = 0, NONE);
+    //DEF_TOKEN(SEMI, ";", number = 0, NONE);
 }
 
 void shutTokens() { free(prebuilt.a); }

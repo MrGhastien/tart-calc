@@ -33,7 +33,7 @@ typedef struct {
     Identifier identifier;
     char* symbol;
     union data {
-        double number;
+        Value number;
         Operator operator;
     } value;
     Function function;
@@ -41,7 +41,6 @@ typedef struct {
     //Metadata for error reporting
     u64 position;
 } Token;
-
 
 const char* getSymbol(Identifier identifier);
 Identifier getIdentifier(const char* symbol);

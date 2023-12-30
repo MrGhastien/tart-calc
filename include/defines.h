@@ -16,6 +16,8 @@ typedef unsigned char bool;
 #define true 1
 #define null 0
 
+#define bitsizeof(x) (sizeof(x) * 8)
+
 enum errcodes {
     ERRCODE_GENERAL = 1,
     ERRCODE_UNKNOWN_OPTION = 2,
