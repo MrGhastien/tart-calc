@@ -97,3 +97,47 @@ Test(BigNumSuite, bignum_sub) {
     bnSub(&num, &num2);
     cr_expect_eq(bnCmpl(&num, -((231L << 32) + 100)), 0);
 }
+
+Test(BigNumSuite, bignum_mul) {
+    bignum num;
+    bignum num2;
+    bnInit(&num);
+    bnInit(&num2);
+
+    bnSet(&num, 17);
+    bnSet(&num2, 100);
+
+    bnMul(&num, &num2);
+    cr_expect_eq(bnCmpl(&num, 1700), 0);
+    /*
+    bnSet(&num, -100);
+    bnSet(&num2, 17);
+    bnAdd(&num, &num2);
+    cr_expect_eq(bnCmpl(&num, -83), 0);
+
+    bnSet(&num, -100);
+    bnSet(&num2, 100);
+    bnAdd(&num, &num2);
+    cr_expect_eq(bnCmpl(&num, 0), 0);
+
+    bnSet(&num, 231L << 32);
+    bnSet(&num2, 100);
+    bnAdd(&num, &num2);
+    cr_expect_eq(bnCmpl(&num, (231L << 32) + 100), 0);
+
+    bnSet(&num, 0);
+    bnSet(&num2, -1);
+    bnAdd(&num, &num2);
+    cr_expect_eq(bnCmpl(&num, -1), 0);
+
+    bnSet(&num, 1L << 63);
+    bnSet(&num2, (1L << 63) + 723748982738L);
+    bnAdd(&num, &num2);
+    cr_expect_eq(bnCmpl(&num, 1L << 63), -1);
+
+    bnSet(&num, 1);
+    bnSet(&num2, -2);
+    bnAdd(&num, &num2);
+    cr_expect_eq(bnCmpl(&num, -1), 0);
+    */
+}

@@ -31,7 +31,6 @@ static void trim(bignum* num) {
         leading--;
     }
 
-    u32 w;
     while(leading > 1 && canIgnoreWord(num->words[leading], num->words, num->size)) {
         leading--;
     }
@@ -53,15 +52,21 @@ static void trim(bignum* num) {
     num->unitWord -= trailing;
 }
 
+static u32 computeUpperBound(const bignum* a, const bignum* b, i32* outOffsetA, i32* outOffsetB) {
+    i32 offset = max(a->unitWord, b->unitWord);
+    *outOffsetA = offset - a->unitWord;
+    *outOffsetB = offset - b->unitWord;
+
+   return max(*outOffsetA + a->size, *outOffsetB + b->size);
+}
+
 static void bnAddInternal(bignum* a, const bignum* b, i32 carry, bool not) {
     if(not)
         carry += 1;
 
-    u32 offset = max(a->unitWord, b->unitWord);
-    u32 offseta = offset - a->unitWord;
-    u32 offsetb = offset - b->unitWord;
-
-    u32 upperBound = max(offseta + a->size, offsetb + b->size);
+    i32 offseta;
+    i32 offsetb;
+    u32 upperBound = computeUpperBound(a, b, &offseta, &offsetb);
 
     u32* newArray = calloc(upperBound, sizeof *newArray);
     if (!newArray) {
@@ -129,11 +134,50 @@ void bnNeg(bignum* num) {
 }
 
 static void simpleMul(bignum* a, const bignum* b) {
+    u32* tmp = calloc(a->size + b->size, sizeof *tmp);
+    if (!tmp) {
+        signalErrorNoToken(ERR_ALLOC_FAIL, NULL, -1);
+        return;
+    }
+
+    i32 offseta;
+    i32 offsetb;
+    computeUpperBound(a, b, &offseta, &offsetb);
+    u32 upperBound = a->size + b->size;
+
+    u32* newArray = calloc(upperBound + 1, sizeof *newArray);
+    if (!newArray) {
+        signalErrorNoToken(ERR_ALLOC_FAIL, NULL, -1);
+        return;
+    }
+
+    for (u64 i = 0; i < a->size; i++) {
+        i32 wordA = getWord(a, i - offseta);
+        if (wordA == 0)
+            continue;
+
+        for (u64 j = 0; j < b->size; j++) {
+            i32 wordB = getWord(b, j - offsetb);
+            if (wordA == 0)
+                continue;
+
+            i64 workspace = wordA;
+            workspace *= wordB;
+
+            u64 idx = (i - offseta) + (j - offsetb);
+            newArray[idx] = workspace & ALLONE;
+            newArray[idx + 1] = workspace >> bitsizeof(u32);
+        }
+    }
+    free(a->words);
+    a->words = newArray;
+    a->size = upperBound;
+    trim(a);
 }
 
 void bnMul(bignum* a, const bignum* b) {
-    u64 mid = max(a->size, b->size) / 2;
-    
+    //u64 mid = max(a->size, b->size) / 2;
+    simpleMul(a, b);
 }
 
-static void karatsuba(u32* awords, u32 alen, u32* 
+//static void karatsuba(u32* awords, u32 alen, u32* 
