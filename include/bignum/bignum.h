@@ -18,6 +18,8 @@ void bnSet(bignum* num, long value);
 /* Clears and initializes a bignum. */
 void bnReset(bignum* num);
 
+void bnReserve(bignum* num, u64 capacity);
+
 long bnAsLong(bignum* num);
 double bnAsDouble(bignum* num);
 
@@ -31,12 +33,13 @@ void bnNeg(bignum* num);
 void bnAdd(bignum* a, const bignum* b);
 void bnSub(bignum* a, const bignum* b);
 void bnMul(bignum* a, const bignum* b);
-void bnDiv(bignum* a, const bignum* b);
+void bnDiv(bignum* a, const bignum* b, bignum* remainder);
 void bnMod(bignum* a, const bignum* b);
 void bnPow(bignum* a, const bignum* b);
 
 int bnCmp(const bignum* a, const bignum* b);
 int bnCmpl(const bignum* a, long b);
+int bnSign(const bignum* num);
 
 i64 bnStr(const bignum* num, char** outStr);
 
