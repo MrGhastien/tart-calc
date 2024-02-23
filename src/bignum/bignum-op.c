@@ -151,12 +151,6 @@ void bnNeg(bignum* num) {
 }
 
 static void simpleMul(bignum* a, const bignum* b) {
-    u32* tmp = calloc(a->size + b->size, sizeof *tmp);
-    if (!tmp) {
-        signalErrorNoToken(ERR_ALLOC_FAIL, NULL, -1);
-        return;
-    }
-
     u32 upperBound = a->size + b->size + 1;
 
     u32* newArray = calloc(upperBound, sizeof *newArray);

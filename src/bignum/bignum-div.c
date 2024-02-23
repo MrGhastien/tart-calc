@@ -30,19 +30,11 @@ static void setWord(bignum* num, u64 idx, u16 digit) {
 }
 
 static void appendWord(bignum* num, u16 digit) {
-    u32* buf = realloc(num->words, (num->size + 1) * sizeof(*buf));
-    if (!buf) {
-        signalErrorNoToken(ERR_ALLOC_FAIL, NULL, -1);
-        return;
-    }
-    buf[num->size] = (i32)digit;
-    num->words = buf;
-    num->size++;
+    setWord(num, num->size * 2, digit);
 }
 
 static void product(bignum* x, const bignum* y, u16 k) {
     u32 len = y->size * 2;
-    bnReserve(x, y->size);
     u16 carry = 0;
     for (u32 i = 0; i < len; i++) {
         u32 temp = getWord(y, i) * k + carry;
@@ -156,9 +148,12 @@ static void longdivide(bignum* x, const bignum* y, bignum* r) {
         buf[k] = qt;
         difference(r, &dq, k, m);
     }
+    free(x->words);
     x->words = (u32*)buf;
     x->size = allocLen >> 1;
     quotient(r, f);
+    free(d.words);
+    free(dq.words);
     trim(x);
     trim(r);
 }
@@ -191,6 +186,8 @@ void bnDiv(bignum* dividend, const bignum* divisor, bignum* outRemainder) {
     } else
         longdivide(dividend, &dCpy, outRemainder);
 
+    free(dCpy.words);
+    
     if (negative)
         bnNeg(dividend);
 }
