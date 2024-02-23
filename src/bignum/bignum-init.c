@@ -10,6 +10,14 @@ void bnInit(bignum* num) {
     num->unitWord = 0;
 }
 
+void bnReserve(bignum* num, u64 capacity) {
+    if(num->words)
+        free(num->words);
+    num->words = calloc(capacity, sizeof(u32));
+    num->unitWord = 0;
+    num->size = capacity;
+}
+
 void bnReset(bignum* num) {
     if (num->words)
         free(num->words);
@@ -44,12 +52,12 @@ void bnSet(bignum* num, long value) {
 }
 
 void bnCopy(const bignum* src, bignum* dst) {
-    u32* newWords = realloc(dst->words, src->size * sizeof *dst->words);
+    u32* newWords = realloc(dst->words, src->size * sizeof *newWords);
     if (!newWords) {
         signalErrorNoToken(ERR_ALLOC_FAIL, NULL, -1);
         return;
     }
-    memcpy(newWords, dst->words, src->size * sizeof *dst->words);
+    memcpy(newWords, src->words, src->size * sizeof *newWords);
     dst->words = newWords;
     dst->size = src->size;
     dst->unitWord = src->unitWord;
@@ -95,8 +103,8 @@ int bnCmpl(const bignum* a, long b) {
     if(a->size > 2)
         return bnSign(a);
 
-    long fword = a->size == 1 ? 0 : a->words[1];
-    long sword = a->size == 0 ? 0 : a->words[0];
+    long fword = a->size < 2 ? 0 : a->words[1];
+    long sword = a->size < 1 ? 0 : a->words[0];
 
     long sum = fword << (bitsizeof(*a->words)) | sword;
     return b - sum;
