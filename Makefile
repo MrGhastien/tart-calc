@@ -37,6 +37,8 @@ all: $(TARGET)
 customalloc: LDLIBS += -L/home/mrghastien/epita/psc/malloc/malloc -lmalloc
 customalloc: $(TARGET)
 
+check: CFLAGS += -fsanitize=address
+check: LDFLAGS += -fsanitize=address
 check: LDLIBS += -lcriterion
 check: $(TEST_TARGET)
 	./$(TEST_TARGET)
