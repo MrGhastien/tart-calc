@@ -10,4 +10,7 @@ void addToArray(u32* array, u64 size, u64 idx, u32 num);
 void singleWordMul(bignum* a, u32 b);
 void trim(bignum* num);
 
+u32 getWord(const bignum* num, u64 idx);
+u16 getSmallWord(const bignum* num, u64 idx);
+
 #endif /* ! BIGNUM_INTERNAL_H */

@@ -33,9 +33,13 @@ void bnNeg(bignum* num);
 void bnAdd(bignum* a, const bignum* b);
 void bnSub(bignum* a, const bignum* b);
 void bnMul(bignum* a, const bignum* b);
-void bnDiv(bignum* a, const bignum* b, bignum* remainder);
+void bnEuclidDiv(bignum* a, const bignum* b, bignum* remainder);
+void bnDiv(bignum* a, const bignum* b);
 void bnMod(bignum* a, const bignum* b);
 void bnPow(bignum* a, const bignum* b);
+
+i32 bnEuclidDivl(bignum* a, i32 divisor);
+void bnDivl(bignum* a, i32 divisor);
 
 int bnCmp(const bignum* a, const bignum* b);
 int bnCmpl(const bignum* a, long b);

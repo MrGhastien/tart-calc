@@ -2,7 +2,7 @@
 #include <criterion/criterion.h>
 #include <stdio.h>
 
-TestSuite(BugNumSuite);
+TestSuite(BigNumSuite);
 
 Test(BigNumSuite, bignum_init) {
     bignum num;
@@ -150,7 +150,7 @@ Test(BigNumSuite, bignum_mul) {
     free(num2.words);
 }
 
-Test(BigNumSuite, bignum_div) {
+Test(BigNumSuite, bignum_euclid_div) {
 
     bignum a;
     bignum b;
@@ -160,25 +160,25 @@ Test(BigNumSuite, bignum_div) {
 
     bnSet(&a, 1234);
     bnSet(&b, 2);
-    bnDiv(&a, &b, &r);
+    bnEuclidDiv(&a, &b, &r);
     cr_expect_eq(bnCmpl(&a, 1234 / 2), 0);
     cr_expect_eq(bnCmpl(&r, 0), 0);
 
     bnSet(&a, 81);
     bnSet(&b, 9);
-    bnDiv(&a, &b, &r);
+    bnEuclidDiv(&a, &b, &r);
     cr_expect_eq(bnCmpl(&a, 9), 0);
     cr_expect_eq(bnCmpl(&r, 0), 0);
 
     bnSet(&a, 100);
     bnSet(&b, 7);
-    bnDiv(&a, &b, &r);
+    bnEuclidDiv(&a, &b, &r);
     cr_expect_eq(bnCmpl(&a, 100 / 7), 0);
     cr_expect_eq(bnCmpl(&r, 100 % 7), 0);
 
     bnSet(&a, 231L << 32);
     bnSet(&b, 100);
-    bnDiv(&a, &b, &r);
+    bnEuclidDiv(&a, &b, &r);
     cr_expect_eq(bnCmpl(&a, (231L << 32) / 100), 0);
     cr_expect_eq(bnCmpl(&r, (231L << 32) % 100), 0);
 
@@ -186,20 +186,40 @@ Test(BigNumSuite, bignum_div) {
     i64 nb = 0xf00000000L;
     bnSet(&a, na);
     bnSet(&b, nb);
-    bnDiv(&a, &b, &r);
-    u64 la = a.size >= 2 ? a.words[1] : 0;
-    la <<= 32;
-    la |= a.size >= 1 ? a.words[0] : 0;
-
-    u64 lr = r.size >= 2 ? r.words[1] : 0;
-    la <<= 32;
-    la |= r.size >= 1 ? r.words[0] : 0;
-    printf("%lu <-> %lu\n", la, na / nb);
-    printf("%lu <-> %lu\n", lr, na % nb);
+    bnEuclidDiv(&a, &b, &r);
     cr_expect_eq(bnCmpl(&a, na / nb), 0);
     cr_expect_eq(bnCmpl(&r, na % nb), 0);
 
     free(a.words);
     free(b.words);
     free(r.words);
+}
+
+Test(BigNumSuite, bignum_divl) {
+    bignum a;
+    bnInit(&a);
+
+    bnSet(&a, 1);
+    bnDivl(&a, 2);
+    cr_expect_eq(a.unitWord, 1);
+    cr_expect_eq(a.words[0], 1 << 31);
+    cr_expect_eq(a.size, 2);
+
+    bnSet(&a, -1);
+    bnDivl(&a, 2);
+    cr_expect_eq(a.unitWord, 1);
+    cr_expect_eq(a.words[0], 1 << 31);
+    cr_expect_eq(a.size, 1);
+
+    bnSet(&a, 1);
+    bnDivl(&a, -2);
+    cr_expect_eq(a.unitWord, 1);
+    cr_expect_eq(a.words[0], 1 << 31);
+    cr_expect_eq(a.size, 1);
+
+    bnSet(&a, 1);
+    bnDivl(&a, 3);
+    cr_expect_eq(a.size, 1000);
+
+    free(a.words);
 }

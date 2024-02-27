@@ -7,16 +7,12 @@
 
 #define ALLONE 0xffffffff
 
-static u32 getWord(const bignum* num, long idx) {
-    if (idx < 0 || idx >= num->size)
-        return 0;
-    return num->words[idx];
-}
-
 static bool canIgnoreWord(u64 idx, u32* array, u64 arraySize) {
     u32 word = array[idx];
     if(idx == 0)
         return word == 0;
+    if(word != 0 && word != ALLONE)
+        return false;
 
     u32 sign = array[idx - 1] >> 31;
     if (word == 0 && sign == 1)
@@ -119,6 +115,7 @@ static void bnAddInternal(bignum* a, const bignum* b, i32 carry, bool not ) {
     free(a->words);
     a->words = newArray;
     a->size = upperBound + 1;
+    a->unitWord = max(a->unitWord, b->unitWord);
     trim(a);
 }
 

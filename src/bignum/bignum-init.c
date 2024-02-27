@@ -1,4 +1,5 @@
 #include "bignum/bignum.h"
+#include "bignum-internal.h"
 #include "util.h"
 #include "error.h"
 
@@ -100,14 +101,15 @@ int bnCmp(const bignum* a, const bignum* b) {
 }
 
 int bnCmpl(const bignum* a, long b) {
-    if(a->size > 2)
+    if(a->unitWord < -1 || a->size - a->unitWord > 2)
         return bnSign(a);
 
-    long fword = a->size < 2 ? 0 : a->words[1];
-    long sword = a->size < 1 ? 0 : a->words[0];
+    i64 num = getWord(a, a->unitWord) | (u64)getWord(a, a->unitWord + 1) << 32;
 
-    long sum = fword << (bitsizeof(*a->words)) | sword;
-    return b - sum;
+    i64 diff = num - b;
+    if(diff == 0 && a->unitWord > 0)
+        return bnSign(a);
+    return diff;
 }
 
 i64 bnStr(const bignum* num, char** outStr) {
