@@ -84,7 +84,7 @@ int bnCmp(const bignum* a, const bignum* b) {
         u32 word = a->words[i];
         u32 otherIndex = i - otherOffset;
         u32 otherWord;
-        if (otherIndex < 0 || otherIndex > b->size) {
+        if (otherIndex > b->size) {
             otherWord = 0;
         } else {
             otherWord = b->words[otherIndex];
@@ -112,7 +112,9 @@ int bnCmpl(const bignum* a, long b) {
     return diff;
 }
 
+/*
 i64 bnStr(const bignum* num, char** outStr) {
     size_t len = 0;
     return 0;
 }
+*/

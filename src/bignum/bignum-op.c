@@ -7,7 +7,7 @@
 
 #define ALLONE 0xffffffff
 
-static bool canIgnoreWord(u64 idx, u32* array, u64 arraySize) {
+static bool canIgnoreWord(u64 idx, u32* array) {
     u32 word = array[idx];
     if(idx == 0)
         return word == 0;
@@ -44,7 +44,7 @@ void trim(bignum* num) {
     }
 
     while (leading < num->size - trailing &&
-           canIgnoreWord(num->size - leading - 1, num->words, num->size)) {
+           canIgnoreWord(num->size - leading - 1, num->words)) {
         leading++;
     }
 
@@ -210,17 +210,6 @@ void bnMul(bignum* a, const bignum* b) {
         singleWordMul(a, b->words[0]);
     else
         simpleMul(a, b);
-}
-
-static u64 nextPower(u64 num) {
-    num--;
-    num |= num >> 1;
-    num |= num >> 2;
-    num |= num >> 4;
-    num |= num >> 8;
-    num |= num >> 16;
-    num |= num >> 32;
-    return num - 1;
 }
 
 // static void karatsuba(u32* awords, u32 alen, u32*

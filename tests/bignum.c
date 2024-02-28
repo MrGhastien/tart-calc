@@ -157,6 +157,7 @@ Test(BigNumSuite, bignum_euclid_div) {
     bignum r;
     bnInit(&a);
     bnInit(&b);
+    bnInit(&r);
 
     bnSet(&a, 1234);
     bnSet(&b, 2);
@@ -202,19 +203,19 @@ Test(BigNumSuite, bignum_divl) {
     bnSet(&a, 1);
     bnDivl(&a, 2);
     cr_expect_eq(a.unitWord, 1);
-    cr_expect_eq(a.words[0], 1 << 31);
+    cr_expect_eq(a.words[0], 1u << 31);
     cr_expect_eq(a.size, 2);
 
     bnSet(&a, -1);
     bnDivl(&a, 2);
     cr_expect_eq(a.unitWord, 1);
-    cr_expect_eq(a.words[0], 1 << 31);
+    cr_expect_eq(a.words[0], 1u << 31);
     cr_expect_eq(a.size, 1);
 
     bnSet(&a, 1);
     bnDivl(&a, -2);
     cr_expect_eq(a.unitWord, 1);
-    cr_expect_eq(a.words[0], 1 << 31);
+    cr_expect_eq(a.words[0], 1u << 31);
     cr_expect_eq(a.size, 1);
 
     bnSet(&a, 1);
@@ -222,4 +223,21 @@ Test(BigNumSuite, bignum_divl) {
     cr_expect_eq(a.size, 1000);
 
     free(a.words);
+}
+
+Test(BigNumSuite, bignum_div) {
+    bignum a;
+    bignum b;
+    bnInit(&a);
+    bnInit(&b);
+    
+    bnSet(&a, 1);
+    bnSet(&b, 2);
+    bnDiv(&a, &b);
+    cr_expect_eq(a.unitWord, 1);
+    cr_expect_eq(a.size, 2);
+    cr_expect_eq(a.words[0], 1u << 31);
+
+    free(a.words);
+    free(b.words);
 }

@@ -34,7 +34,27 @@ static void appendWord(bignum* num, u16 digit) {
     setWord(num, num->size * 2, digit);
 }
 
+static void push_word(bignum* num, u32 word) {
+    u32* array = realloc(num->words, sizeof *array * (num->size + 1));
+    if (!array) {
+        signalErrorNoToken(ERR_ALLOC_FAIL, NULL, -1);
+        return;
+    }
+
+    memmove(array + 1, array, num->size * sizeof(*array));
+    array[0] = word;
+
+    num->words = array;
+    num->size++;
+    num->unitWord++;
+}
+
+static void prepend_small_word(bignum* num, u16 digit) {
+    push_word(num, digit << 16);
+}
+
 static void product(bignum* x, const bignum* y, u16 k) {
+    bnReset(x);
     u32 len = y->size * 2;
     u16 carry = 0;
     for (u32 i = 0; i < len; i++) {
@@ -69,7 +89,7 @@ static inline u32 min(u32 a, u32 b) {
     return a < b ? a : b;
 }
 
-static i32 remainder(bignum* y, u32 k) {
+static i32 remain(bignum* y, u32 k) {
     u32 carry = 0;
     for (u32 i = y->size; i > 0; i--) {
         carry = (y->words[i - 1] + (((u64)carry) << 32)) % k;
@@ -79,8 +99,8 @@ static i32 remainder(bignum* y, u32 k) {
 
 static u16 trial(bignum* r, bignum* d, u32 k, u32 m) {
     u64 km = k + m;
-    u64 r3 =
-        ((u64)getSmallWord(r, km) << (RADIX_POWER + RADIX_POWER)) + (getSmallWord(r, km - 1) << RADIX_POWER) + getSmallWord(r, km - 2);
+    u64 r3 = ((u64)getSmallWord(r, km) << (RADIX_POWER + RADIX_POWER)) + (getSmallWord(r, km - 1) << RADIX_POWER) +
+             getSmallWord(r, km - 2);
     u64 d2 = ((u64)getSmallWord(d, m - 1) << RADIX_POWER) + getSmallWord(d, m - 2);
     return min(r3 / d2, RADIX - 1);
 }
@@ -151,10 +171,75 @@ static void longdivide(bignum* x, const bignum* y, bignum* r) {
     x->words = (u32*)buf;
     x->size = allocLen >> 1;
     quotient(r, f);
+    r->size = y->size;
     free(d.words);
     free(dq.words);
     trim(x);
     trim(r);
+}
+
+static void precisedivide(bignum* x, const bignum* y) {
+
+    u64 n = x->size * 2;
+    u64 m = y->size * 2;
+    u16 xmsd = getSmallWord(x, n - 1);
+    if (xmsd == 0) {
+        n--;
+        xmsd = getSmallWord(x, n - 1);
+    }
+    u16 ymsd = getSmallWord(y, m - 1);
+    if (ymsd == 0) {
+        m--;
+        ymsd = getSmallWord(y, m - 1);
+    }
+
+    bignum d; /** The normalized divisor */
+    bignum dq;
+    bignum r;
+    bnInit(&r);
+    bnInit(&d);
+    bnInit(&dq);
+
+    u16 f = RADIX / (ymsd + 1);
+    product(&r, x, f);
+    product(&d, y, f);
+    u64 allocLen = n - m + 1;
+    allocLen += allocLen & 1;
+    bnReserve(x, allocLen >> 1);
+
+    i32 l = n - m;
+
+    for (; l >= 0; l--) {
+        u16 qt = trial(&r, &d, l, m);
+        product(&dq, &d, qt);
+        if (smaller(&r, &dq, l, m)) {
+            qt--;
+            product(&dq, &d, qt);
+        }
+        setWord(x, l, qt);
+        difference(&r, &dq, l, m);
+    }
+
+    for (; l >= MIN_ITER; l--) {
+        i32 k = l & 1;
+        u16 qt = trial(&r, &d, k, m);
+        product(&dq, &d, qt);
+        if (smaller(&r, &dq, k, m)) {
+            qt--;
+            product(&dq, &d, qt);
+        }
+        if(qt == 0)
+            break;
+        if (k)
+            prepend_small_word(x, qt);
+        else
+            setWord(x, k, qt);
+        difference(&r, &dq, k, m);
+    }
+    free(d.words);
+    free(dq.words);
+    free(r.words);
+    trim(x);
 }
 
 void bnEuclidDiv(bignum* dividend, const bignum* divisor, bignum* outRemainder) {
@@ -177,8 +262,7 @@ void bnEuclidDiv(bignum* dividend, const bignum* divisor, bignum* outRemainder) 
     }
 
     if (divisor->size == 1) {
-        bnInit(outRemainder);
-        bnSet(outRemainder, remainder(dividend, dCpy.words[0]));
+        bnSet(outRemainder, remain(dividend, dCpy.words[0]));
         largeQuotient(dividend, dCpy.words[0]);
     } else if (divisor->size - offsetB > dividend->size - offsetA) {
         bnCopy(dividend, outRemainder);
@@ -204,27 +288,12 @@ i32 bnEuclidDivl(bignum* dividend, i32 divisor) {
         negative = !negative;
     }
 
-    i32 mod = remainder(dividend, divisor);
+    i32 mod = remain(dividend, divisor);
     largeQuotient(dividend, divisor);
 
     if (negative)
         bnNeg(dividend);
     return mod;
-}
-
-static void push_word(bignum* num, u32 word) {
-    u32* array = realloc(num->words, sizeof *array * (num->size + 1));
-    if (!array) {
-        signalErrorNoToken(ERR_ALLOC_FAIL, NULL, -1);
-        return;
-    }
-
-    memmove(array + 1, array, num->size * sizeof(*array));
-    array[0] = word;
-
-    num->words = array;
-    num->size++;
-    num->unitWord++;
 }
 
 void bnDivl(bignum* dividend, i32 divisor) {
@@ -259,4 +328,28 @@ void bnDivl(bignum* dividend, i32 divisor) {
     if (negative)
         bnNeg(dividend);
     trim(dividend);
+}
+
+void bnDiv(bignum* dividend, const bignum* divisor) {
+    bignum dCpy;
+    bnInit(&dCpy);
+    bnCopy(divisor, &dCpy);
+
+    bool negative = false;
+    if (bnSign(dividend) < 0) {
+        bnNeg(dividend);
+        negative = true;
+    }
+
+    if (bnSign(divisor) < 0) {
+        bnNeg(&dCpy);
+        negative = !negative;
+    }
+
+    precisedivide(dividend, divisor);
+
+    free(dCpy.words);
+
+    if (negative)
+        bnNeg(dividend);
 }
