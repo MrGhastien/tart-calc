@@ -11,7 +11,7 @@ Test(BigNumSuite, bignum_init) {
     bignum num2;
     bnInit(&num2);
     bnSet(&num2, 0);
-    
+
     cr_expect_eq(bnCmp(&num, &num2), 0);
 }
 
@@ -107,6 +107,11 @@ Test(BigNumSuite, bignum_sub) {
     bnSet(&num2, 100);
     bnSub(&num, &num2);
     cr_expect_eq(bnCmpl(&num, -((231L << 32) + 100)), 0);
+
+    bnSet(&num, (231L << 32) | 774);
+    bnSet(&num2, 231L << 32);
+    bnSub(&num, &num2);
+    cr_expect_eq(bnCmpl(&num, 774), 0);
     free(num.words);
     free(num2.words);
 }
@@ -220,7 +225,7 @@ Test(BigNumSuite, bignum_divl) {
 
     bnSet(&a, 1);
     bnDivl(&a, 3);
-    cr_expect_eq(a.size, 1000);
+    cr_expect_eq(a.size, 10);
 
     free(a.words);
 }
@@ -228,15 +233,28 @@ Test(BigNumSuite, bignum_divl) {
 Test(BigNumSuite, bignum_div) {
     bignum a;
     bignum b;
+    char* str;
     bnInit(&a);
     bnInit(&b);
-    
+
     bnSet(&a, 1);
     bnSet(&b, 2);
     bnDiv(&a, &b);
     cr_expect_eq(a.unitWord, 1);
     cr_expect_eq(a.size, 2);
     cr_expect_eq(a.words[0], 1u << 31);
+    bnStr(&a, &str);
+    printf("%s\n", str);
+    free(str);
+
+    bnSet(&a, 1);
+    bnSet(&b, 3);
+    bnDiv(&a, &b);
+    cr_expect_gt(a.words[a.unitWord - 1], 1u << 30);
+    cr_expect_lt(a.words[a.unitWord - 1], 1u << 31);
+    bnStr(&a, &str);
+    printf("%s\n", str);
+    free(str);
 
     free(a.words);
     free(b.words);

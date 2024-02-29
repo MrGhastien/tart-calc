@@ -190,7 +190,7 @@ void singleWordMul(bignum* a, u32 b) {
     }
 
     for (u64 i = 0; i < a->size; i++) {
-        i32 wordA = getWord(a, i);
+        u32 wordA = getWord(a, i);
         i64 workspace = wordA;
         workspace *= b;
 
@@ -210,6 +210,10 @@ void bnMul(bignum* a, const bignum* b) {
         singleWordMul(a, b->words[0]);
     else
         simpleMul(a, b);
+}
+
+void bnMull(bignum* a, i32 b) {
+    singleWordMul(a, b);
 }
 
 // static void karatsuba(u32* awords, u32 alen, u32*

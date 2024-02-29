@@ -1,7 +1,7 @@
-#include "bignum/bignum.h"
 #include "bignum-internal.h"
-#include "util.h"
+#include "bignum/bignum.h"
 #include "error.h"
+#include "util.h"
 
 #include <stdlib.h>
 
@@ -12,7 +12,7 @@ void bnInit(bignum* num) {
 }
 
 void bnReserve(bignum* num, u64 capacity) {
-    if(num->words)
+    if (num->words)
         free(num->words);
     num->words = calloc(capacity, sizeof(u32));
     num->unitWord = 0;
@@ -36,12 +36,12 @@ void bnSet(bignum* num, long value) {
     u32 newSize;
     u32 second = bits >> 32;
     u32 first = bits & 0xffffffff;
-    if(second != 0 && second != 0xffffffff)
+    if (second != 0 && second != 0xffffffff)
         newSize = 2;
     else
         newSize = 1;
     u32* newArray = realloc(num->words, newSize * sizeof *num->words);
-    if(!newArray) {
+    if (!newArray) {
         signalErrorNoToken(ERR_ALLOC_FAIL, NULL, -1);
         return;
     }
@@ -65,9 +65,9 @@ void bnCopy(const bignum* src, bignum* dst) {
 }
 
 int bnSign(const bignum* num) {
-    if(num->size == 0)
+    if (num->size == 0)
         return 0;
-    if(num->words[num->size - 1] >> 31)
+    if (num->words[num->size - 1] >> 31)
         return -1;
     return 1;
 }
@@ -75,7 +75,7 @@ int bnSign(const bignum* num) {
 int bnCmp(const bignum* a, const bignum* b) {
     int signA = bnSign(a);
     int signB = bnSign(b);
-    if(signA != signB)
+    if (signA != signB)
         return signA;
 
     u32 otherOffset = a->unitWord - b->unitWord;
@@ -101,20 +101,57 @@ int bnCmp(const bignum* a, const bignum* b) {
 }
 
 int bnCmpl(const bignum* a, long b) {
-    if(a->unitWord < -1 || a->size - a->unitWord > 2)
+    if (a->unitWord < -1 || a->size - a->unitWord > 2)
         return bnSign(a);
 
     i64 num = getWord(a, a->unitWord) | (u64)getWord(a, a->unitWord + 1) << 32;
 
     i64 diff = num - b;
-    if(diff == 0 && a->unitWord > 0)
+    if (diff == 0 && a->unitWord > 0)
         return bnSign(a);
     return diff;
 }
 
-/*
 i64 bnStr(const bignum* num, char** outStr) {
-    size_t len = 0;
-    return 0;
+    darray buf;
+    darrayInit(&buf, 8, sizeof(char));
+
+    bignum cpy;
+    bnInit(&cpy);
+    bnCopy(num, &cpy);
+
+    int sign = bnSign(num);
+    if (sign == 0) {
+        darrayAdd(&buf, '0');
+        darrayAdd(&buf, 0);
+        *outStr = buf.a;
+        return 1;
+    } else if (sign < 0) {
+        darrayAdd(&buf, '-');
+    }
+
+    while ((sign > 0 && bnCmpl(&cpy, 1) >= 0) || (sign < 0 && bnCmpl(&cpy, -1) <= 0)) {
+        i64 remainder = bnEuclidDivl(&cpy, 10);
+        darrayAdd(&buf, remainder + '0');
+    }
+
+    if (bnCmpl(&cpy, 0) != 0) {
+        bignum tmp;
+        bnInit(&tmp);
+        darrayAdd(&buf, '.');
+        while (bnCmpl(&cpy, 0) != 0) {
+            bnMull(&cpy, 10);
+            i64 digit = getWord(&cpy, cpy.unitWord);
+            darrayAdd(&buf, digit + '0');
+            bnSet(&tmp, digit);
+            if(digit != 0)
+                cpy.words[cpy.unitWord] = 0;
+            trim(&cpy);
+        }
+        bnReset(&tmp);
+    }
+
+    darrayAdd(&buf, 0);
+    *outStr = buf.a;
+    return buf.length;
 }
-*/

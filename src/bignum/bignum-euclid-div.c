@@ -11,7 +11,7 @@
 #include <stdlib.h>
 #include <string.h>
 
-#define MIN_ITER -1000
+#define MAX_ITER -10
 
 #define RADIX 65536
 #define RADIX_POWER 16
@@ -124,6 +124,8 @@ static void difference(bignum* r, bignum* dq, u32 k, u32 m) {
         setWord(r, i + k, diff % RADIX);
         borrow = 1 - diff / RADIX;
     }
+    if (borrow != 0)
+        setWord(r, m + k + 1, borrow + RADIX);
 }
 
 static void longdivide(bignum* x, const bignum* y, bignum* r) {
@@ -220,15 +222,18 @@ static void precisedivide(bignum* x, const bignum* y) {
         difference(&r, &dq, l, m);
     }
 
-    for (; l >= MIN_ITER; l--) {
+    i32 max = MAX_ITER * 2;
+    for (; l >= max; l--) {
         i32 k = l & 1;
+        if (k)
+            prepend_small_word(&r, 0);
         u16 qt = trial(&r, &d, k, m);
         product(&dq, &d, qt);
         if (smaller(&r, &dq, k, m)) {
             qt--;
             product(&dq, &d, qt);
         }
-        if(qt == 0)
+        if (qt == 0)
             break;
         if (k)
             prepend_small_word(x, qt);
@@ -317,7 +322,7 @@ void bnDivl(bignum* dividend, i32 divisor) {
         i--;
     }
 
-    while (carry != 0 && i > MIN_ITER) {
+    while (carry != 0 && i > MAX_ITER) {
         push_word(dividend, 0);
         u64 temp = dividend->words[0] + (((u64)carry) << 32);
         dividend->words[0] = temp / divisor;
