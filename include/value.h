@@ -1,6 +1,8 @@
 #ifndef VALUE_H
 #define VALUE_H
 
+#include "bignum/bignum.h"
+
 enum ValueType {
     TYPE_NUM,
     /*TYPE_CPX,
@@ -12,7 +14,7 @@ enum ValueType {
 typedef struct value_t {
     enum ValueType type;
     union data_t {
-        double num;
+        bignum num;
     } data;
 } Value;
 

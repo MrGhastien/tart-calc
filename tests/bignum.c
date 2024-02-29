@@ -259,3 +259,18 @@ Test(BigNumSuite, bignum_div) {
     free(a.words);
     free(b.words);
 }
+
+Test(BigNumSuite, bignum_parse) {
+    const char* str = "2.5";
+
+    bignum num;
+    bnParse(str, &num);
+
+    char* out;
+    bnStr(&num, &out);
+    printf("%s\n", out);
+    free(out);
+
+    free(num.words);
+    
+}

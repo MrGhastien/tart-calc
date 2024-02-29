@@ -144,7 +144,7 @@ i64 bnStr(const bignum* num, char** outStr) {
             i64 digit = getWord(&cpy, cpy.unitWord);
             darrayAdd(&buf, digit + '0');
             bnSet(&tmp, digit);
-            if(digit != 0)
+            if (digit != 0)
                 cpy.words[cpy.unitWord] = 0;
             trim(&cpy);
         }
@@ -154,4 +154,37 @@ i64 bnStr(const bignum* num, char** outStr) {
     darrayAdd(&buf, 0);
     *outStr = buf.a;
     return buf.length;
+}
+
+bool bnParse(const char* str, bignum* num) {
+    bnInit(num);
+    bool negative = false;
+    char c = *str;
+    if (c == '-') {
+        str++;
+        negative = true;
+    }
+
+    while ((c = *str) && c != '.') {
+        if (c > '0')
+            bnAddl(num, c - '0');
+        bnMull(num, 10);
+        str++;
+    }
+    if (c == '.') {
+        bignum frac;
+        bnInit(&frac);
+        str++;
+        while ((c = *str)) {
+            if (c > '0')
+                bnAddl(&frac, c - '0');
+            bnDivl(&frac, 10);
+            str++;
+        }
+        bnAdd(num, &frac);
+        free(frac.words);
+    }
+    if (negative)
+        bnNeg(num);
+    return true;
 }

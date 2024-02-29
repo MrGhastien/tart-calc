@@ -9,9 +9,9 @@
 
 static bool canIgnoreWord(u64 idx, u32* array) {
     u32 word = array[idx];
-    if(idx == 0)
+    if (idx == 0)
         return word == 0;
-    if(word != 0 && word != ALLONE)
+    if (word != 0 && word != ALLONE)
         return false;
 
     u32 sign = array[idx - 1] >> 31;
@@ -43,8 +43,7 @@ void trim(bignum* num) {
         trailing++;
     }
 
-    while (leading < num->size - trailing &&
-           canIgnoreWord(num->size - leading - 1, num->words)) {
+    while (leading < num->size - trailing && canIgnoreWord(num->size - leading - 1, num->words)) {
         leading++;
     }
 
@@ -93,7 +92,7 @@ static void bnAddInternal(bignum* a, const bignum* b, i32 carry, bool not ) {
         return;
     }
 
-    //u64 lastSign = 0;
+    // u64 lastSign = 0;
     for (u32 k = 0; k < upperBound; k++) {
         i32 wordA = getWord(a, k - offseta);
         i32 wordB = getWord(b, k - offsetb);
@@ -108,7 +107,7 @@ static void bnAddInternal(bignum* a, const bignum* b, i32 carry, bool not ) {
 
         newArray[k] = workspace & 0xffffffff;
         carry = workspace >> bitsizeof(u32);
-        //lastSign = newArray[k] >> (bitsizeof(u32) - 1);
+        // lastSign = newArray[k] >> (bitsizeof(u32) - 1);
     }
 
     newArray[upperBound] = carry;
@@ -121,6 +120,14 @@ static void bnAddInternal(bignum* a, const bignum* b, i32 carry, bool not ) {
 
 void bnAdd(bignum* a, const bignum* b) {
     bnAddInternal(a, b, 0, false);
+}
+
+void bnAddl(bignum* a, i32 b) {
+    bignum tmp;
+    bnInit(&tmp);
+    bnSet(&tmp, b);
+    bnAddInternal(a, &tmp, 0, false);
+    free(tmp.words);
 }
 
 void bnSub(bignum* a, const bignum* b) {

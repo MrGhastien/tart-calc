@@ -1,6 +1,7 @@
 #include "token.h"
 #include "darray.h"
 #include "util.h"
+#include "value.h"
 
 #include "error.h"
 
@@ -52,9 +53,13 @@ bool initToken(Token* tok, Identifier identifier, char *symbol, u64 position) {
             return false;
         }
         break;
-    case NUMBER:
-        //tok->value.number = strtod(symbol, null);
+    case NUMBER: {
+        // tok->value.number = strtod(symbol, null);
+        Value* val = &tok->value.number;
+        bnParse(symbol, &val->data.num);
+        val->type = TYPE_NUM;
         break;
+    }
     default:
         tok->function = NONE;
         //tok->value.number = 0;

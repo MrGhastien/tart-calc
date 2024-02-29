@@ -31,6 +31,7 @@ void bnNot(bignum* num);
 void bnNeg(bignum* num);
 
 void bnAdd(bignum* a, const bignum* b);
+void bnAddl(bignum* a, i32 b);
 void bnSub(bignum* a, const bignum* b);
 void bnMul(bignum* a, const bignum* b);
 void bnMull(bignum* a, i32 b);
@@ -47,5 +48,6 @@ int bnCmpl(const bignum* a, long b);
 int bnSign(const bignum* num);
 
 i64 bnStr(const bignum* num, char** outStr);
+bool bnParse(const char* str, bignum* num);
 
 #endif /* ! BIGNUM_H */
