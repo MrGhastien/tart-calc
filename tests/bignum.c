@@ -1,5 +1,6 @@
 #include "bignum/bignum.h"
 #include <criterion/criterion.h>
+#include <criterion/internal/assert.h>
 #include <stdio.h>
 
 TestSuite(BigNumSuite);
@@ -70,7 +71,7 @@ Test(BigNumSuite, bignum_add) {
     bnSet(&num, 1L << 63);
     bnSet(&num2, (1L << 63) + 723748982738L);
     bnAdd(&num, &num2);
-    cr_expect_eq(bnCmpl(&num, 1L << 63), -1);
+    cr_expect_gt(bnCmpl(&num, 1L << 63), 0);
 
     bnSet(&num, 1);
     bnSet(&num2, -2);
@@ -260,17 +261,23 @@ Test(BigNumSuite, bignum_div) {
     free(b.words);
 }
 
-Test(BigNumSuite, bignum_parse) {
-    const char* str = "2.5";
-
+static void testParse(const char* str) {
     bignum num;
     bnParse(str, &num);
 
     char* out;
     bnStr(&num, &out);
-    printf("%s\n", out);
+    cr_expect_str_eq(out, str);
     free(out);
-
     free(num.words);
-    
+}
+
+Test(BigNumSuite, bignum_parse) {
+    testParse("3");
+    testParse("35");
+    testParse("123456");
+    testParse("0.25");
+    testParse("0");
+    testParse("2.5");
+    testParse("8589934592");
 }

@@ -1,8 +1,10 @@
 #include "bignum-internal.h"
 #include "bignum/bignum.h"
+#include "darray.h"
 #include "error.h"
 #include "util.h"
 
+#include <ctype.h>
 #include <stdlib.h>
 
 void bnInit(bignum* num) {
@@ -76,19 +78,16 @@ int bnCmp(const bignum* a, const bignum* b) {
     int signA = bnSign(a);
     int signB = bnSign(b);
     if (signA != signB)
-        return signA;
+        return signA - signB;
 
     u32 otherOffset = a->unitWord - b->unitWord;
+    if(a->size - a->unitWord != b->size - b->unitWord)
+        return a->size - a->unitWord - b->size + b->unitWord;
     int comp = 0;
     for (u64 i = 0; i < a->size; i++) {
         u32 word = a->words[i];
         u32 otherIndex = i - otherOffset;
-        u32 otherWord;
-        if (otherIndex > b->size) {
-            otherWord = 0;
-        } else {
-            otherWord = b->words[otherIndex];
-        }
+        u32 otherWord = getWord(b, otherIndex);
         if (word < otherWord) {
             comp = -1;
             break;
@@ -130,10 +129,10 @@ i64 bnStr(const bignum* num, char** outStr) {
         darrayAdd(&buf, '-');
     }
 
-    while ((sign > 0 && bnCmpl(&cpy, 1) >= 0) || (sign < 0 && bnCmpl(&cpy, -1) <= 0)) {
+    do {
         i64 remainder = bnEuclidDivl(&cpy, 10);
-        darrayAdd(&buf, remainder + '0');
-    }
+        darrayInsert(&buf, remainder + '0', 0);
+    } while ((sign > 0 && bnCmpl(&cpy, 1) >= 0) || (sign < 0 && bnCmpl(&cpy, -1) <= 0));
 
     if (bnCmpl(&cpy, 0) != 0) {
         bignum tmp;
@@ -150,6 +149,7 @@ i64 bnStr(const bignum* num, char** outStr) {
         }
         bnReset(&tmp);
     }
+    free(cpy.words);
 
     darrayAdd(&buf, 0);
     *outStr = buf.a;
@@ -166,20 +166,24 @@ bool bnParse(const char* str, bignum* num) {
     }
 
     while ((c = *str) && c != '.') {
+        bnMull(num, 10);
         if (c > '0')
             bnAddl(num, c - '0');
-        bnMull(num, 10);
         str++;
     }
     if (c == '.') {
+        str++;
+        while ((c = *str) && isdigit(c)) {
+            str++;
+        }
+        str--;
         bignum frac;
         bnInit(&frac);
-        str++;
-        while ((c = *str)) {
+        while ((c = *str) != '.') {
             if (c > '0')
                 bnAddl(&frac, c - '0');
             bnDivl(&frac, 10);
-            str++;
+            str--;
         }
         bnAdd(num, &frac);
         free(frac.words);

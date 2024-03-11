@@ -85,6 +85,7 @@ static void bnAddInternal(bignum* a, const bignum* b, i32 carry, bool not ) {
     i32 offseta;
     i32 offsetb;
     u32 upperBound = computeUpperBound(a, b, &offseta, &offsetb);
+    i32 signA = bnSign(a);
 
     u32* newArray = calloc(upperBound + 1, sizeof *newArray);
     if (!newArray) {
@@ -94,14 +95,14 @@ static void bnAddInternal(bignum* a, const bignum* b, i32 carry, bool not ) {
 
     // u64 lastSign = 0;
     for (u32 k = 0; k < upperBound; k++) {
-        i32 wordA = getWord(a, k - offseta);
-        i32 wordB = getWord(b, k - offsetb);
-        if (not )
+        u32 wordA = getWord(a, k - offseta);
+        u32 wordB = getWord(b, k - offsetb);
+        if (not)
             wordB = ~wordB;
 
         // Do this in 3 steps instead of 1 to ensure that
         // there is no 32 bit overflow
-        i64 workspace = wordA;
+        u64 workspace = wordA;
         workspace += wordB;
         workspace += carry;
 

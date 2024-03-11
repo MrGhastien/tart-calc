@@ -1,8 +1,9 @@
 #include "bignum-internal.h"
+#include "bignum/bignum.h"
 
 u32 getWord(const bignum* num, u64 idx) {
     if (idx >= num->size)
-        return 0;
+        return bnSign(num) < 0 ? 0xffffffff : 0;
     return num->words[idx];
 }
 

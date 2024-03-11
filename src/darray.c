@@ -1,8 +1,9 @@
 #include "darray.h"
 #include "util.h"
 
-#include <stdlib.h>
 #include <err.h>
+#include <stdlib.h>
+#include <string.h>
 
 #define FIELD_SIZE 3 * sizeof(u64)
 
@@ -12,7 +13,7 @@ darray* darrayCreate(u64 size, u64 stride) {
     return array;
 }
 
-void darrayInit(darray *array, u64 size, u64 stride) {
+void darrayInit(darray* array, u64 size, u64 stride) {
     array->capacity = size;
     array->stride = stride;
     array->length = 0;
@@ -28,77 +29,72 @@ void darrayEmpty(darray* array) {
     free(array->a);
 }
 
-u64 darrayCapacity(darray *array) {
+u64 darrayCapacity(darray* array) {
     return array->capacity;
 }
 
-u64 darrayStride(darray *array) {
+u64 darrayStride(darray* array) {
     return array->stride;
 }
 
-u64 darrayLength(darray *array) {
+u64 darrayLength(darray* array) {
     return array->length;
 }
 
-static bool ensureCapacity(darray* array) {
-    u64 capacity = darrayCapacity(array);
-    u64 stride = darrayStride(array);
-    u64 newCapacity = capacity << 1;
+static bool ensureCapacity(darray* array, u64 capacity) {
+    if (array->capacity >= capacity)
+        return true;
 
-    void* ptr = realloc(array->a, newCapacity * stride);
-    if(ptr == NULL)
+    u64 new_capacity = array->capacity;
+    while (new_capacity < capacity)
+        new_capacity = capacity << 1;
+
+    void* new_array = realloc(array->a, new_capacity * array->stride);
+    if (new_array == NULL)
         return false;
-    array->a = ptr;
-    array->capacity = newCapacity;
+    array->a = new_array;
+    array->capacity = new_capacity;
     return true;
 }
 
-void _darrayAdd(darray* array, void *element) {
-    u64 capacity = darrayCapacity(array);
-    u64 stride = darrayStride(array);
+void _darrayAdd(darray* array, void* element) {
     u64 length = darrayLength(array);
 
-    if (capacity <= length) {
-        if(!ensureCapacity(array))
-            return;
-        capacity = darrayCapacity(array);
-    }
+    if (!ensureCapacity(array, length + 1))
+        return;
+
+    u64 capacity = darrayCapacity(array);
+    u64 stride = darrayStride(array);
 
     memcpy(array->a + length * stride, element, stride);
     array->length++;
 }
 
-void _darrayInsert(darray* array, void *element, u64 index) {
-    u64 capacity = darrayCapacity(array);
-    u64 stride = darrayStride(array);
+void _darrayInsert(darray* array, void* element, u64 index) {
     u64 length = darrayLength(array);
-    if (index == length) {
+    if (index == length)
         return _darrayAdd(array, element);
-    }
 
-    if (capacity == length) {
-        if(!ensureCapacity(array))
-            return;
-        capacity = darrayCapacity(array);
-    }
+    if (!ensureCapacity(array, length + 1))
+        return;
+
+    u64 stride = darrayStride(array);
 
     void* addr = array->a;
-    for (u64 i = length - 1; i > index; i--) {
-        memcpy(addr + (i + 1) * stride, addr + i * stride, stride);
-    }
+    memmove(addr + (index + 1) * stride, addr + index * stride, stride * (length - index));
     memcpy(addr + index * stride, element, stride);
     array->length++;
 }
 
-bool darrayRemove(darray* array, u64 index, void *out) {
+bool darrayRemove(darray* array, u64 index, void* out) {
     u64 stride = darrayStride(array);
     u64 length = darrayLength(array);
 
-    if(index >= length)
+    if (index >= length)
         return false;
 
     void* address = array->a + index * stride;
-    if(out != null)
+    if (out != null)
         memcpy(out, address, stride);
 
     memcpy(address, address + stride, (length - index - 1) * stride);
@@ -106,9 +102,9 @@ bool darrayRemove(darray* array, u64 index, void *out) {
     return true;
 }
 
-bool darrayPop(darray* array, void *out) {
+bool darrayPop(darray* array, void* out) {
     u64 length = darrayLength(array);
-    if(length == 0)
+    if (length == 0)
         return false;
     u64 stride = darrayStride(array);
     if (out != null) {
