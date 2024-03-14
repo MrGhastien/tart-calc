@@ -52,6 +52,7 @@ void bnSet(bignum* num, long value) {
     if (newSize == 2)
         num->words[1] = second;
     num->words[0] = first;
+    trim(num);
 }
 
 void bnCopy(const bignum* src, bignum* dst) {
@@ -81,7 +82,7 @@ int bnCmp(const bignum* a, const bignum* b) {
         return signA - signB;
 
     u32 otherOffset = a->unitWord - b->unitWord;
-    if(a->size - a->unitWord != b->size - b->unitWord)
+    if (a->size - a->unitWord != b->size - b->unitWord)
         return a->size - a->unitWord - b->size + b->unitWord;
     int comp = 0;
     for (u64 i = 0; i < a->size; i++) {
@@ -103,12 +104,24 @@ int bnCmpl(const bignum* a, long b) {
     if (a->unitWord < -1 || a->size - a->unitWord > 2)
         return bnSign(a);
 
-    i64 num = getWord(a, a->unitWord) | (u64)getWord(a, a->unitWord + 1) << 32;
+    i64 num = getWord(a, a->unitWord) | ((i64)getWord(a, a->unitWord + 1)) << 32;
 
     i64 diff = num - b;
-    if (diff == 0 && a->unitWord > 0)
-        return bnSign(a);
-    return diff;
+    if (diff < 0)
+        return -1;
+    else if (diff > 0)
+        return 1;
+
+    if (a->size - a->unitWord <= 1 && a->unitWord > 0) {
+        if (b == 0)
+            return bnSign(a);
+        else if (b < 0)
+            return 1;
+        else
+            return -1;
+    }
+
+    return 0;
 }
 
 i64 bnStr(const bignum* num, char** outStr) {
@@ -124,6 +137,7 @@ i64 bnStr(const bignum* num, char** outStr) {
         darrayAdd(&buf, '0');
         darrayAdd(&buf, 0);
         *outStr = buf.a;
+        free(cpy.words);
         return 1;
     } else if (sign < 0) {
         darrayAdd(&buf, '-');

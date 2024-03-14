@@ -71,7 +71,7 @@ Test(BigNumSuite, bignum_add) {
     bnSet(&num, 1L << 63);
     bnSet(&num2, (1L << 63) + 723748982738L);
     bnAdd(&num, &num2);
-    cr_expect_gt(bnCmpl(&num, 1L << 63), 0);
+    cr_expect_lt(bnCmpl(&num, 1L << 63), 0);
 
     bnSet(&num, 1);
     bnSet(&num2, -2);
@@ -107,7 +107,7 @@ Test(BigNumSuite, bignum_sub) {
     bnSet(&num, -(231L << 32));
     bnSet(&num2, 100);
     bnSub(&num, &num2);
-    cr_expect_eq(bnCmpl(&num, -((231L << 32) + 100)), 0);
+    cr_expect_eq(bnCmpl(&num, -(231L << 32) - 100), 0);
 
     bnSet(&num, (231L << 32) | 774);
     bnSet(&num2, 231L << 32);
@@ -190,7 +190,15 @@ Test(BigNumSuite, bignum_euclid_div) {
     cr_expect_eq(bnCmpl(&r, (231L << 32) % 100), 0);
 
     i64 na = 734895678928373L;
-    i64 nb = 0xf00000000L;
+    i64 nb = 0xf00000001L;
+    bnSet(&a, na);
+    bnSet(&b, nb);
+    bnEuclidDiv(&a, &b, &r);
+    cr_expect_eq(bnCmpl(&a, na / nb), 0);
+    cr_expect_eq(bnCmpl(&r, na % nb), 0);
+
+    na = 734895678928373L;
+    nb = 0xf00000000L;
     bnSet(&a, na);
     bnSet(&b, nb);
     bnEuclidDiv(&a, &b, &r);

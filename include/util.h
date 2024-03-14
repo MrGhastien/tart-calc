@@ -9,3 +9,5 @@ bool streq(const char *a, const char *b);
 
 u64 maxl(u64 a, u64 b);
 u32 max(u32 a, u32 b);
+
+int ucmp(i64 a, u64 b);

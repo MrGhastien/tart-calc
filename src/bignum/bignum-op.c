@@ -78,44 +78,53 @@ u32 computeUpperBound(const bignum* a, const bignum* b, i32* outOffsetA, i32* ou
     return max(*outOffsetA + a->size, *outOffsetB + b->size);
 }
 
-static void bnAddInternal(bignum* a, const bignum* b, i32 carry, bool not ) {
-    if (not )
+static void bnAddInternal(bignum* a, const bignum* b, i32 carry, bool negate) {
+    if (negate)
         carry += 1;
 
     i32 offseta;
     i32 offsetb;
     u32 upperBound = computeUpperBound(a, b, &offseta, &offsetb);
-    i32 signA = bnSign(a);
 
-    u32* newArray = calloc(upperBound + 1, sizeof *newArray);
+    u32* newArray = calloc(upperBound, sizeof *newArray);
     if (!newArray) {
         signalErrorNoToken(ERR_ALLOC_FAIL, NULL, -1);
         return;
     }
 
-    // u64 lastSign = 0;
     for (u32 k = 0; k < upperBound; k++) {
-        u32 wordA = getWord(a, k - offseta);
-        u32 wordB = getWord(b, k - offsetb);
-        if (not)
+        i32 a_idx = k - offseta;
+        i32 b_idx = k - offsetb;
+        u32 wordA = getWord(a, a_idx);
+        u32 wordB = getWord(b, b_idx);
+        if (negate)
             wordB = ~wordB;
 
         // Do this in 3 steps instead of 1 to ensure that
         // there is no 32 bit overflow
-        u64 workspace = wordA;
-        workspace += wordB;
+        u64 workspace;
+        workspace = wordB;
+        workspace += wordA;
         workspace += carry;
 
         newArray[k] = workspace & 0xffffffff;
         carry = workspace >> bitsizeof(u32);
-        // lastSign = newArray[k] >> (bitsizeof(u32) - 1);
     }
 
-    newArray[upperBound] = carry;
     free(a->words);
     a->words = newArray;
-    a->size = upperBound + 1;
+    a->size = upperBound;
     a->unitWord = max(a->unitWord, b->unitWord);
+    /*
+      There is no need to append the carry word to the new number.
+
+      If we are adding two big numbers, the only time where we should append the carry
+      is when the two numbers' MSBs are set.
+      But in this case the first number will have an additional word telling the sign.
+
+      Thus there will be enough space for the carry word !
+      In the other cases the carry word is meaningless and should be discarded.
+     */
     trim(a);
 }
 
@@ -163,6 +172,8 @@ static void simpleMul(bignum* a, const bignum* b) {
         signalErrorNoToken(ERR_ALLOC_FAIL, NULL, -1);
         return;
     }
+    i32 signA = bnSign(a);
+    i32 signB = bnSign(b);
 
     for (u64 i = 0; i < b->size; i++) {
         i32 wordB = b->words[i];
@@ -174,8 +185,15 @@ static void simpleMul(bignum* a, const bignum* b) {
             if (wordA == 0)
                 continue;
 
-            i64 workspace = wordA;
-            workspace *= wordB;
+            i64 workspace;
+            if (signA < 0)
+                workspace = (i32)wordA;
+            else
+                workspace = wordA;
+            if (signB < 0)
+                workspace *= (i32)wordB;
+            else
+                workspace *= wordB;
 
             u64 idx = i + j;
             addToArray(newArray, upperBound, idx, workspace & ALLONE);
@@ -189,39 +207,42 @@ static void simpleMul(bignum* a, const bignum* b) {
     trim(a);
 }
 
-void singleWordMul(bignum* a, u32 b) {
+void bnMul(bignum* a, const bignum* b) {
+    // u64 mid = max(a->size, b->size) / 2;
+    if (b->size == 1)
+        bnMull(a, b->words[0]);
+    else
+        simpleMul(a, b);
+}
+
+void bnMull(bignum* a, i32 b) {
     u64 uppderBound = a->size + 1;
     u32* tmp = calloc(uppderBound, sizeof *tmp);
     if (!tmp) {
         signalErrorNoToken(ERR_ALLOC_FAIL, NULL, -1);
         return;
     }
+    i32 signA = bnSign(a);
 
     for (u64 i = 0; i < a->size; i++) {
         u32 wordA = getWord(a, i);
-        i64 workspace = wordA;
-        workspace *= b;
+        i64 workspace;
+        if (signA < 0)
+            workspace = (i32)wordA;
+        else
+            workspace = wordA;
+        if (b < 0)
+            workspace *= (i32)b;
+        else
+            workspace *= b;
 
-        u64 idx = i;
-        addToArray(tmp, uppderBound, idx, workspace & ALLONE);
-        addToArray(tmp, uppderBound, idx + 1, workspace >> bitsizeof(u32));
+        addToArray(tmp, uppderBound, i, workspace & ALLONE);
+        addToArray(tmp, uppderBound, i + 1, workspace >> bitsizeof(u32));
     }
     free(a->words);
     a->words = tmp;
     a->size = uppderBound;
     trim(a);
-}
-
-void bnMul(bignum* a, const bignum* b) {
-    // u64 mid = max(a->size, b->size) / 2;
-    if (b->size == 1)
-        singleWordMul(a, b->words[0]);
-    else
-        simpleMul(a, b);
-}
-
-void bnMull(bignum* a, i32 b) {
-    singleWordMul(a, b);
 }
 
 // static void karatsuba(u32* awords, u32 alen, u32*
