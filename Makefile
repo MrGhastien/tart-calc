@@ -41,7 +41,7 @@ check: CFLAGS += -fsanitize=address
 check: LDFLAGS += -fsanitize=address
 check: LDLIBS += -lcriterion
 check: $(TEST_TARGET)
-	./$(TEST_TARGET)
+	./$(TEST_TARGET) -j1
 
 $(TEST_TARGET): $(filter-out $(MAINS),$(OBJS)) $(TST_OBJS)
 	@printf "\e[93mLinking test executable $@...\e[0m\n"
