@@ -7,16 +7,27 @@
 #include "bignum-internal.h"
 #include "bignum/bignum.h"
 #include "error.h"
-#include "util.h"
 #include <stdlib.h>
 #include <string.h>
-#include <wctype.h>
 
 #define MAX_ITER -10
 
 #define RADIX 65536
 #define RADIX_POWER 16
 #define RADIX_MASK 65535
+
+typedef struct div_info_t {
+    bignum* r;
+    bignum* d;
+    bignum* dq;
+    u64 n;
+    u64 m;
+    u32 sizea;
+    u32 sizeb;
+    i32 offseta;
+    i32 offsetb;
+    u32 f;
+} div_info;
 
 static void setSmallWord(bignum* num, u64 idx, u16 digit) {
     if (idx == num->size * 2) {
@@ -31,25 +42,8 @@ static void setSmallWord(bignum* num, u64 idx, u16 digit) {
     ((u16*)num->words)[idx] = digit;
 }
 
-static void appendSmallWord(bignum* num, u16 digit) {
-    setSmallWord(num, num->size * 2, digit);
-}
-
 static void prependSmallWord(bignum* num, u16 digit) {
     prependWord(num, digit << 16);
-}
-
-static void product(bignum* x, const bignum* y, u16 k) {
-    bnReset(x);
-    u32 len = y->size * 2;
-    u16 carry = 0;
-    for (u32 i = y->unitWord * 2; i < len; i++) {
-        u32 temp = getSmallWord(y, i) * k + carry;
-        setSmallWord(x, i, temp & RADIX_MASK);
-        carry = temp >> RADIX_POWER;
-    }
-    if (carry != 0)
-        appendSmallWord(x, carry);
 }
 
 static void largeQuotient(bignum* num, u32 k) {
@@ -71,53 +65,67 @@ static inline u32 min(u32 a, u32 b) {
 static i32 remain(bignum* y, u32 k) {
     u64 carry = 0;
     for (i32 i = y->size; i > y->unitWord; i--) {
-        carry = (getWord(y, i - 1) + (((u64)carry) << 32)) % k;
+        carry = getWord(y, i - 1) + (carry << 32);
+        carry %= k;
     }
     return carry;
 }
 
-static u16 trial(bignum* r, bignum* d, u32 k, u32 m) {
-    u64 km = k + m;
-    u64 r3 = ((u64)getSmallWord(r, km) << (RADIX_POWER + RADIX_POWER)) + (getSmallWord(r, km - 1) << RADIX_POWER) +
-             getSmallWord(r, km - 2);
-    u64 d2 = ((u64)getSmallWord(d, m - 1 + d->unitWord * 2) << RADIX_POWER) + getSmallWord(d, m - 2 + d->unitWord * 2);
+/*
+ * Divide the 3 MSDs of the remainder by the 2 MSDs of the divisor.
+ * This results in a estimate of a quotient digit.
+ */
+static u16 trial(div_info* info, i32 l) {
+    u64 idx = l + info->m + info->offseta;
+    u64 r3 = getSmallWord(info->r, idx);
+    r3 <<= RADIX_POWER;
+    r3 |= getSmallWord(info->r, idx - 1);
+    r3 <<= RADIX_POWER;
+    r3 |= getSmallWord(info->r, idx - 2);
+
+    u64 d2 = getSmallWord(info->d, info->d->size * 2 - 1);
+    d2 <<= RADIX_POWER;
+    d2 |= getSmallWord(info->d, info->d->size * 2 - 2);
     return min(r3 / d2, RADIX - 1);
 }
 
 static bool smaller(bignum* r, bignum* dq, u32 k, u32 m) {
     u32 i = m;
     u32 j = 0;
+    u32 dqIdx = i - dq->unitWord * 2;
     while (i != j) {
-        if (getSmallWord(r, i + k) != getSmallWord(dq, i))
+        if (getSmallWord(r, i + k) != getSmallWord(dq, dqIdx))
             j = i;
         else
             i--;
     }
-    return getSmallWord(r, i + k) < getSmallWord(dq, i);
+    return getSmallWord(r, i + k) < getSmallWord(dq, dqIdx);
 }
 
 static void difference(bignum* r, bignum* dq, u32 k, u32 m) {
     i32 borrow = 0;
+    k += r->unitWord * 2;
     for (u32 i = 0; i <= m; i++) {
-        i32 diff = getSmallWord(r, i + k + r->unitWord * 2) - getSmallWord(dq, i + dq->unitWord * 2) - borrow + RADIX;
-        setSmallWord(r, i + k + r->unitWord * 2, diff % RADIX);
+        i32 diff = getSmallWord(r, i + k) - getSmallWord(dq, i + dq->unitWord * 2) - borrow + RADIX;
+        setSmallWord(r, i + k, diff % RADIX);
         borrow = 1 - diff / RADIX;
     }
     if (borrow != 0)
-        setSmallWord(r, m + k + 1 + r->unitWord * 2, borrow + RADIX);
+        setSmallWord(r, m + k + 1, borrow + RADIX);
 }
 
-static void divideRemaining(bignum* x, bignum* r, bignum* dq, bignum* d, u64 m) {
+static void divideRemaining(bignum* x, div_info* info, i32 l) {
     i32 max = MAX_ITER * 2;
-    for (i32 l = -1; l >= max; l--) {
+    for (; l >= -max; l--) {
         i32 k = l & 1;
         if (k)
-            prependSmallWord(r, 0);
-        u16 qt = trial(r, d, k, m);
-        product(dq, d, qt);
-        if (smaller(r, dq, k, m)) {
+            prependSmallWord(info->r, 0);
+        u16 qt = trial(info, l);
+        bnCopy(info->dq, info->d);
+        bnMull(info->dq, qt);
+        if (smaller(info->r, info->dq, k, info->m)) {
             qt--;
-            product(dq, d, qt);
+            bnSub(info->dq, info->d);
         }
         if (qt == 0)
             break;
@@ -125,59 +133,76 @@ static void divideRemaining(bignum* x, bignum* r, bignum* dq, bignum* d, u64 m) 
             prependSmallWord(x, qt);
         else
             setSmallWord(x, k, qt);
-        difference(r, dq, k, m);
+        //difference(info->r, dq, k, m);
+        bnSub(info->r, info->dq);
+        if (bnCmpl(info->r, 0) == 0)
+            break;
     }
 }
 
 static void longDivide(bignum* x, const bignum* y, bignum* r, bool euclidian) {
 
-    u64 n = (x->size - x->unitWord) * 2;
-    u64 m = (y->size - y->unitWord) * 2;
-    u16 xmsd = getSmallWord(x, x->size * 2 - 1);
-    if (xmsd == 0) {
-        n--;
-        xmsd = getSmallWord(x, x->size * 2 - 2);
+    bignum normDivisor; /** The nor    u64 allocLen = info.n - info.m;
+    allocLen += allocLen & 1;
+malized divisor */
+    bignum prodDivisor;
+
+    div_info info = {
+        .n = countWords(x) * 2,
+        .m = countWords(y) * 2,
+        .offseta = x->unitWord * 2,
+        .offsetb = y->unitWord * 2,
+        .sizeb = y->size * 2,
+        .sizea = x->size * 2,
+        .r = r,
+        .d = &normDivisor,
+        .dq = &prodDivisor,
+    };
+
+    if (getSmallWord(x, info.sizea - 1) == 0) {
+        info.n--;
+        info.sizea--;
     }
-    u16 ymsd = getSmallWord(y, y->size * 2 - 1);
+    u16 ymsd = getSmallWord(y, info.sizeb - 1);
     if (ymsd == 0) {
-        m--;
-        ymsd = getSmallWord(y, y->size * 2 - 2);
+        info.sizeb--;
+        info.m--;
+        ymsd = getSmallWord(y, info.m - 1);
     }
 
-    bignum d; /** The normalized divisor */
-    bignum dq;
-    bnInit(&d);
-    bnInit(&dq);
+    bnInit(&normDivisor);
+    bnInit(&prodDivisor);
     bnCopy(x, r);
-    bnCopy(y, &d);
+    bnCopy(y, &normDivisor);
 
     u16 f = RADIX / (ymsd + 1);
     bnMull(r, f);
-    bnMull(&d, f);
-    u64 allocLen = n - m + 1;
-    allocLen += allocLen & 1;
-    bnReserve(x, allocLen >> 1);
+    bnMull(&normDivisor, f);
 
-    i32 l = n - m;
+    u64 allocLen = x->size - y->size + y->unitWord - x->unitWord;
+    bnReserve(x, allocLen);
+
+    /* index of the current quotient digit */
+    i32 l = info.n - info.m - 1;
 
     for (; l >= 0; l--) {
-        u16 qt = trial(r, &d, l, m);
-        bnCopy(&d, &dq);
-        bnMull(&dq, qt);
-        if (smaller(r, &dq, l, m)) {
-            qt--;
-            bnCopy(&d, &dq);
-            bnMull(&dq, qt);
+        u16 quotDigit = trial(&info, l);
+        bnCopy(&normDivisor, &prodDivisor);
+        bnMull(&prodDivisor, quotDigit);
+        if (smaller(r, &prodDivisor, l, m)) {
+            quotDigit--;
+            bnSub(&prodDivisor, &normDivisor);
         }
-        setSmallWord(x, l, qt);
-        difference(r, &dq, l, m);
+        setSmallWord(x, l, quotDigit);
+        //difference(r, &prodDivisor, l, m);
+        bnSub(r, &prodDivisor);
     }
 
     if (!euclidian)
-        divideRemaining(x, r, &dq, &d, m);
+        divideRemaining(x, r, &prodDivisor, &normDivisor, m, l);
 
-    free(d.words);
-    free(dq.words);
+    free(normDivisor.words);
+    free(prodDivisor.words);
     if (euclidian) {
         largeQuotient(r, f);
         r->size = y->size - y->unitWord;

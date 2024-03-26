@@ -17,4 +17,6 @@ void setWord(bignum* num, u64 idx, u32 digit);
 void appendWord(bignum* num, u16 digit);
 void prependWord(bignum* num, u32 word);
 
+u32 countWords(const bignum* num);
+
 #endif /* ! BIGNUM_INTERNAL_H */

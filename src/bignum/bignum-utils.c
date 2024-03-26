@@ -61,3 +61,12 @@ void prependWord(bignum* num, u32 word) {
     num->size++;
     num->unitWord++;
 }
+
+/*
+ * Get the number of digits of a number.
+ */
+u32 countWords(const bignum* num) {
+    if (num->unitWord < 0)
+        return num->size - num->unitWord;
+    return num->size;
+}
